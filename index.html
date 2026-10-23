@@ -2504,15 +2504,32 @@ function drawSpriteBody(p){
   const dep=.94+.12*Math.min(1,Math.max(0,p.y/WH));
   const src=sprSrc(k,m,gh,fl),ext=gh?null:sprTint(k,'rgba(26,12,48,.55)');
   const st=sprStep(p,H,dtp),A=st.a,B=st.b;
-  const ox=h=>A*Math.pow(h,1.35)+(B-A)*.9*Math.pow(h,2.4);
+  /* 表現レイヤー：歩き・待機・攻撃・被弾でイラスト全体を大きく動かす */
+  const spdK=Math.min(1.4,Math.hypot(p.vx||0,p.vy||0)/(p.d.spd||150));
+  p.swk=(p.swk||0)+(((mvk&&!p.dash)?Math.min(1,.45+spdK*.7):0)-(p.swk||0))*Math.min(1,dtp*9);
+  const swk=p.swk,ph=p.wp||0,cph=Math.cos(ph),sph=Math.sin(ph);
+  const hxk=J.hx||0,drp=Math.max(-6,Math.min(10,J.o?J.o.drop:0)),act=Math.min(1,Math.abs(hxk)/8);
+  const hurt=p.hurtT>0?Math.min(1,p.hurtT*3.5):0;
+  const wob=Math.sin(t*14)*hurt;
+  const ox=h=>A*Math.pow(h,1.35)+(B-A)*.9*Math.pow(h,2.4)
+    +swk*(Math.sin(ph-h*2.3)*4.2*h+sph*1.6*h*h)
+    +(1-swk)*Math.sin(t*1.7-h*1.6)*1.5*h
+    +hurt*-5*h*h;
   const bob=J.hy+40.5;
   const hover=full?0:(9+Math.sin(t*2.1)*2.2+(mvk?Math.abs(Math.cos(p.wp))*1.5:0));
   const bottom=(full?(s.footpad||0):0)-hover-(mvk&&full?Math.abs(Math.cos(p.wp))*1.6:0);
-  const sY=Math.max(.8,1-bob/(H*.85)+Math.max(-.06,Math.min(.06,st.av*.0007))+Math.sin(t*2.2)*.006);
+  const sY=Math.max(.74,1-bob/(H*.85)+Math.max(-.07,Math.min(.07,st.av*.0007))+Math.sin(t*2.2)*.008
+    +swk*Math.cos(ph*2)*.03-drp*.011+act*.025-hurt*.05);
   const cx=(s.cx||.5)*W,N=sprLow?13:26,sp=s.split||.46;
   g.save();g.translate(p.x,p.y-z-J.lz);
   if(p.down)g.rotate(1.45*p.face);
+  else{
+    g.translate(wob*3,-swk*Math.abs(cph)*4.6);
+    g.rotate(sph*.055*swk*(p.face||1)*0+sph*.05*swk-p.face*.16*hurt+(p.dash?p.face*.14:0));
+  }
   g.scale(sx*Math.min(1.2,Math.max(.8,J.sx))*dep*(1+(mvk||p.down?0:Math.sin(t*1.3)*.025)),dep);
+  if(!p.down)g.translate(hxk*1.1*(sx<0?-1:1)*0+hxk*1.1,0);
+  if(!p.down&&act>.05)g.scale(1+act*.07,1);
   if(turning&&!p.down)g.transform(1,0,(p.face-sfv)*.06,1,0,0);
   const lift=mvk?Math.sin(p.wp):0;
   const mesh=(S,ex,ey)=>{
@@ -2522,7 +2539,7 @@ function drawSpriteBody(p){
       const h=1-(q+.5)/N,dy=yb[q],dh=yb[q+1]-yb[q]+(snap?0:.7);
       const sy0=Math.round(q*ih/N),sh=Math.max(1,Math.round((q+1)*ih/N)-sy0),dx=-cx+ox(h)+ex;
       if(full&&mvk&&h<sp){
-        const l1=Math.max(0,lift)*3.4*(1-h/sp*.5),l2=Math.max(0,-lift)*3.4*(1-h/sp*.5);
+        const l1=Math.max(0,lift)*6.5*(1-h/sp*.5),l2=Math.max(0,-lift)*6.5*(1-h/sp*.5);
         g.drawImage(S,0,sy0,iw/2,sh,dx,dy-l1,W/2,dh);g.drawImage(S,iw/2,sy0,iw/2,sh,dx+W/2,dy-l2,W/2,dh);
       }else g.drawImage(S,0,sy0,iw,sh,dx,dy,W,dh);
     }
