@@ -4084,8 +4084,12 @@ function loop(ts){
   const raw=(ts-last)/1000||0,dt=Math.min(.05,raw);last=ts;
   if(state==='play'){if(raw>.034){slowN++;fastN=0}else{fastN++;if(fastN>120)slowN=Math.max(0,slowN-1)}if(slowN>40&&!sprLow){sprLow=true}}
   try{if(G&&state==='play')update(dt)}catch(e){oops(e)}
-  try{draw()}catch(e){oops(e)}
+  try{draw()}catch(e){oops(e);try{for(let i=0;i<40;i++)g.restore()}catch(_){}try{g.setTransform(dpr,0,0,dpr,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.shadowBlur=0;g.filter='none'}catch(_){}}
+  if(!window.__wd){window.__wd=1;setInterval(()=>{try{if(state==='play'&&performance.now()-(window.__lf||0)>1500&&!document.hidden){last=0}}catch(_){}},1000)}window.__lf=performance.now();
 }
+document.addEventListener('visibilitychange',()=>{last=0;try{if(!document.hidden){g.setTransform(dpr,0,0,dpr,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';if(typeof resize==='function')resize()}}catch(_){}});
+window.addEventListener('pageshow',()=>{last=0;try{if(typeof resize==='function')resize()}catch(_){}});
+window.addEventListener('unhandledrejection',ev=>oops(ev.reason));
 loadSaved();updBest();
 window.requestAnimationFrame(loop);
 </script>
