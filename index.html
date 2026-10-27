@@ -3277,6 +3277,69 @@ function soloLabel(){return SOLO<0?'ソロプレイ：オフ（4人パーティ�
 const _ng13=newGame;newGame=function(w0,cfg){_ng13(w0,cfg);try{if(SOLO>=0&&G.P[SOLO]){const p=G.P[SOLO];G.P=[p];G.L=p;p.maxhp=p.hp=Math.round(p.maxhp*1.7);p.d=Object.assign({},p.d,{atk:Math.round(p.d.atk*1.15)});p.x=WW/2;p.y=WH/2+120;G.solo=1}}catch(e){oops(e)}};
 const _lay13=lay;lay=function(){const L=_lay13();if(G&&G.solo)L.swap={x:-999,y:-999,r:1};return L};
 
+/* ===== v32: 操作せつめい・せってい・奥ゆきの3D感 ===== */
+// ---- 奥ゆき（画面の下ほどおおきく、上ほど小さく） ----
+function dsc(y){return .86+.28*clamp(y/WH,0,1)}
+const _dP14=drawPlayer;drawPlayer=function(p){const k=dsc(p.y);g.save();g.translate(p.x,p.y);g.scale(k,k);g.translate(-p.x,-p.y);try{_dP14(p)}finally{g.restore()}};
+const _dE14=drawEnemy;drawEnemy=function(e){const k=dsc(e.y);g.save();g.translate(e.x,e.y);g.scale(k,k);g.translate(-e.x,-e.y);try{_dE14(e)}finally{g.restore()}};
+// ---- 地面のパース・遠くのもや ----
+const _da14=drawAmbient;drawAmbient=function(){
+  try{if(G&&!sprLow){g.save();const gr=g.createLinearGradient(0,0,0,WH*.5);gr.addColorStop(0,'rgba(30,20,80,.42)');gr.addColorStop(.6,'rgba(60,40,120,.08)');gr.addColorStop(1,'rgba(60,40,120,0)');g.fillStyle=gr;g.fillRect(0,0,WW,WH*.5);
+    g.strokeStyle='rgba(200,180,255,.055)';g.lineWidth=2;g.beginPath();const vx=WW/2,vy=-WH*.45;for(let i=-20;i<=20;i++){g.moveTo(vx,vy);g.lineTo(vx+i*WW/9,WH)}for(let k=1;k<=14;k++){const y=WH*Math.pow(k/14,1.9);g.moveTo(0,y);g.lineTo(WW,y)}g.stroke();
+    const gb=g.createLinearGradient(0,WH*.82,0,WH);gb.addColorStop(0,'rgba(255,230,200,0)');gb.addColorStop(1,'rgba(255,230,200,.06)');g.fillStyle=gb;g.fillRect(0,WH*.82,WW,WH*.18);g.restore()}}catch(_){try{g.restore()}catch(__){}}
+  _da14()};
+// ---- せってい・操作せつめい ----
+function openHelp(){let ov=document.getElementById('help');if(!ov){ov=mkOv('help','<div style="font-size:22px;font-weight:900;margin:8px 0">せってい・操作せつめい</div><div id="helpBody" style="width:100%;max-width:400px;text-align:left"></div><button class="big" id="btnHelpClose" style="font-size:18px;padding:10px 40px;margin:12px 0 28px">とじる</button>');ov.style.zIndex=120;ov.style.background='rgba(8,6,24,.97)';ov.style.overflowY='auto';document.getElementById('btnHelpClose').onclick=()=>ov.classList.add('hide')}
+  const B=document.getElementById('helpBody');
+  const sec=(t,h)=>'<div style="margin:10px 0 4px;font-weight:900;color:#ffe27a;font-size:14px">■ '+t+'</div><div style="font-size:12.5px;line-height:1.8;color:#e6e0ff;background:rgba(0,0,0,.3);border-radius:12px;padding:8px 10px">'+h+'</div>';
+  B.innerHTML=
+   sec('スマホ・タブレット','<b>左がわをドラッグ</b>：移動<br><b>こうげき</b>（右下の大きいボタン）：長押しで連打<br><b>わざ1・わざ2</b>：キャラごとの技。ボタンの下に技名<br><b>ひっさつ</b>：ゲージがたまると光る。カットイン付きの大技<br><b>かいひ</b>：ピンチをよける（むてき）。<b>ぎりぎりでよける＝ジャストかいひ</b>で反撃チャンス<br><b>ガード</b>：長押しでふせぐ（ガードをもつキャラのみ）<br><b>交代</b>：次の仲間にかわる。上の顔カードをタップでもOK<br><b>ボス注目</b>：ボスをねらい続ける＆カメラが追う。もう一度押すと解除<br><b>おにぎり</b>：HPを回復するアイテム')+
+   sec('パソコン（キーボード）','<b>移動</b>：W A S D / 矢印キー<br><b>こうげき</b>：J またはスペース<br><b>わざ1・わざ2</b>：K ・ L<br><b>ひっさつ</b>：I（Enterでも可）<br><b>かいひ</b>：U　<b>ガード</b>：O（長押し）<br><b>交代</b>：1〜4 / Q / Tab<br><b>ボス注目</b>：F')+
+   sec('あそびのヒント','・地面の<b style="color:#ff8a8a">赤い円・線</b>は攻撃の予告。光りきる前にはなれよう<br>・ボスが<b style="color:#ffe27a">「弱点が光った！」</b>のときはダメージ2倍のチャンス<br>・敵の<b style="color:#ff6a7a">赤い輪郭</b>、味方の<b style="color:#46ffb4">緑の輪郭</b>で見分けられる<br>・敵をたおすと、ごくまれに<b>仲間</b>になったり<b>おまもり</b>を落とす<br>・おまもりは 図鑑→チャーム で3つまでそうび<br>・ガチャで手に入れた技は「編成→編集」でセットできる<br>・ひっさつゲージは、ジャストかいひや攻撃でたまる')+
+   '<div style="margin:12px 0 4px;font-weight:900;color:#ffe27a;font-size:14px">■ せってい</div><div id="helpSet" style="display:flex;flex-direction:column;gap:6px;align-items:center"></div>';
+  const S=document.getElementById('helpSet');S.innerHTML='';
+  const mkb=(lab,fn)=>{const b=document.createElement('button');b.className='mid';b.style.width='100%';const up=()=>{b.textContent=lab()};up();b.onclick=()=>{fn();up();['btnQ','btnSolo'].forEach(id=>{const o=document.getElementById(id);if(o){if(id==='btnQ')o.textContent='画質：'+QN[QMODE]+'（タップで切りかえ）';else o.textContent=soloLabel()}})};S.appendChild(b)};
+  mkb(()=>'画質：'+QN[QMODE]+'（自動／軽い／きれい）',()=>{QMODE=QMODE==='a'?'l':QMODE==='l'?'h':'a';try{localStorage.setItem('oni_q',QMODE)}catch(_){}applyQ()});
+  mkb(soloLabel,()=>{SOLO=SOLO>=3?-1:SOLO+1;try{localStorage.setItem('oni_solo',String(SOLO))}catch(_){}});
+  ov.classList.remove('hide')}
+(function(){const addT=()=>{const info=document.getElementById('btnInfo');if(!info||document.getElementById('btnHelpT'))return false;const b=document.createElement('button');b.id='btnHelpT';b.className='mid';b.innerHTML='⚙ せってい・操作<small>画質・ソロ・遊び方</small>';b.onclick=openHelp;info.parentNode.appendChild(b);return true};
+  const addP=()=>{const a=document.getElementById('btnInfo2');if(!a||document.getElementById('btnHelpP'))return false;const b=document.createElement('button');b.id='btnHelpP';b.className='mid';b.textContent='操作せつめい・せってい';b.onclick=openHelp;a.parentNode.insertBefore(b,a);return true};
+  const t=setInterval(()=>{const x=addT(),y=addP();if(x&&y)clearInterval(t)},300);setTimeout(()=>clearInterval(t),8000)})();
+
+/* ===== v33: 新わざ10（うすいエフェクト）・見やすさ・負荷かんり ===== */
+function initSkills8(){
+  const sk=(id,o)=>defSk(id,o);const cast=(p,clip,lf)=>{const c=CLIPS[clip]||CLIPS.cast2;playClip(p,CLIPS[clip]?clip:'cast2');p.lock=c.dur*(lf||.9);return c};
+  const aimA=(p,r)=>{const t=aimTarget(p,r||620);return t?Math.atan2(t.y-p.y,t.x-p.x):Math.atan2(p.fy,p.fx)};
+  const enm=(x,y,r)=>G.E.filter(e=>Math.hypot(e.x-x,e.y-y)<r+e.r);
+  const R=Math.random;
+  const line=(x1,y1,x2,y2,col,dur,w)=>fx(dur,f=>{const u=1-f.t/f.dur;g.save();g.globalCompositeOperation='lighter';g.globalAlpha=u*.8;g.strokeStyle=col;g.lineWidth=(w||3)*u+1;g.beginPath();g.moveTo(x1,y1);const n=5;for(let i=1;i<n;i++){const t=i/n;g.lineTo(x1+(x2-x1)*t+(R()-.5)*14,y1+(y2-y1)*t+(R()-.5)*14)}g.lineTo(x2,y2);g.stroke();g.restore()});
+  sk('chainbolt',{n:'いなずまのくさり',cd:11,tag:'れんさ',icon:'dashbolt',bc:'#ffe45c',unl:2,desc:'いなずまが敵から敵へ6回とびうつる',ai:(p,c)=>c(520)>=2,
+    fn:p=>{cast(p,'cast2',.85);let cur={x:p.x,y:p.y-30};const hit=new Set();for(let k=0;k<6;k++)timed(.12+k*.1,()=>{if(p.down)return;let best=null,bd=1e9;for(const e of G.E){if(hit.has(e))continue;const d=Math.hypot(e.x-cur.x,e.y-cur.y);if(d<bd&&d<420){bd=d;best=e}}if(!best)return;hit.add(best);line(cur.x,cur.y,best.x,best.y-best.r*.6,'#fff0a0',.25,3);hitE(best,p.d.atk*1.0,p,60,.12);sparks(best.x,best.y-best.r*.6,'#ffe45c',4,160);snd('zap');cur={x:best.x,y:best.y-best.r*.6}})}});
+  sk('poisonmist',{n:'どくのきり',cd:14,tag:'せっち',icon:'orb',bc:'#7ac83a',unl:2,desc:'足もとにどくのきり。5秒間、中の敵にダメージ',ai:(p,c)=>c(380)>=2,
+    fn:p=>{cast(p,'pray',.7);const x=p.x,y=p.y;let acc=0;fx(5,f=>{const u=Math.min(1,f.t*4,(5-f.t)*3);g.save();g.globalAlpha=.55*u;g.strokeStyle='#9aff5a';g.lineWidth=2;g.setLineDash([10,12]);g.lineDashOffset=-G.t*20;g.beginPath();g.ellipse(x,y,170,100,0,0,TAU);g.stroke();g.restore()},(f,dt)=>{acc+=dt;if(acc>.5){acc=0;for(const e of G.E)if(Math.hypot(e.x-x,(e.y-y)*1.7)<170+e.r)hitE(e,p.d.atk*.28,p,0,0);sparks(x+ri(-120,120),y+ri(-60,60),'#a8ff6a',1,40,-Math.PI/2,1)}},true)}});
+  sk('groundcrack',{n:'だいちのさけめ',cd:10,tag:'つらぬく',icon:'crystal',bc:'#c8a060',unl:1,desc:'まっすぐ地面がさけて、直線上の敵をはじきとばす',ai:(p,c)=>c(480)>=2,
+    fn:p=>{cast(p,'smash',.9);const a=aimA(p),L=520,x0=p.x,y0=p.y;timed(.2,()=>{if(p.down)return;fx(.7,f=>{const u=f.t/.7,e=Math.min(1,u*4);g.save();g.globalAlpha=1-u;g.strokeStyle='#ffd890';g.lineWidth=5;g.beginPath();g.moveTo(x0,y0);for(let i=1;i<=12;i++){const t=i/12*e;g.lineTo(x0+Math.cos(a)*L*t+Math.sin(i*7)*8,y0+Math.sin(a)*L*t+Math.cos(i*5)*8)}g.stroke();g.restore()},null,true);shk(.35);snd('boom');for(const e of G.E){const dx=e.x-x0,dy=e.y-y0,t=dx*Math.cos(a)+dy*Math.sin(a),d=Math.abs(-dx*Math.sin(a)+dy*Math.cos(a));if(t>0&&t<L&&d<70+e.r)hitE(e,p.d.atk*1.3,p,260,.25)}})}});
+  sk('starfall',{n:'ほしのしずく',cd:9,tag:'ついせき',icon:'meteors',bc:'#ffe88a',unl:1,desc:'小さな星を8こ。ちかくの敵をおいかける',ai:(p,c)=>c(520)>=1,
+    fn:p=>{cast(p,'cast2',.85);for(let k=0;k<8;k++)timed(.1+k*.07,()=>{if(p.down)return;const a=Math.PI*2*k/8;shot(p,{vx:Math.cos(a)*300,vy:Math.sin(a)*300,r:9,dmg:p.d.atk*.7,life:1.6,home:6,col:'#fff2b0',kb:50,sz:.9})});snd('zap')}});
+  sk('swallow',{n:'つばめがえし',cd:7,tag:'もどる',icon:'boomer',bc:'#8ad0ff',unl:1,desc:'行きも帰りも当たる、はやい風のやいば',ai:(p,c)=>c(480)>=1,
+    fn:p=>{const c=cast(p,'dual',.8);timed(c.dur*.4,()=>{if(p.down)return;const a=aimA(p);shot(p,{vx:Math.cos(a)*640,vy:Math.sin(a)*640,r:22,dmg:p.d.atk*1.1,life:1.1,pierce:99,ret:1,kb:80,col:'#cfeaff',sz:1.2});snd('slash')})}});
+  sk('healseed',{n:'いやしのたね',cd:16,tag:'かいふく',icon:'petal',bc:'#8aff9a',unl:2,desc:'みんなのHPを5秒かけてじわじわ回復',ai:(p,c)=>G.P.some(a=>!a.down&&a.hp<a.maxhp*.75),
+    fn:p=>{cast(p,'pray',.7);for(let k=1;k<=5;k++)timed(k*1,()=>{for(const a of G.P)if(!a.down){healP(a,a.maxhp*.06);sparks(a.x,a.y-40,'#9affaa',3,60,-Math.PI/2,1)}});snd('heal');for(const a of G.P)if(!a.down)ring(a.x,a.y,60,'#8aff9a',.5,2)}});
+  sk('pullvortex',{n:'ひきよせのうず',cd:13,tag:'きゅういん',icon:'tornado',bc:'#a070ff',unl:3,desc:'敵を中心にぎゅっと引きよせる。ボスにはききにくい',ai:(p,c)=>c(460)>=3,
+    fn:p=>{cast(p,'pray',.7);const t=nearestE(p.x,p.y,520)||{x:p.x+p.fx*260,y:p.y+p.fy*260};const x=t.x,y=t.y;fx(1.2,f=>{const u=f.t/1.2;g.save();g.globalAlpha=(1-u)*.7;g.strokeStyle='#c8a8ff';g.lineWidth=2;for(let k=0;k<3;k++){g.beginPath();for(let i=0;i<=24;i++){const r=(1-i/24)*(200-u*60),a=i*.35+G.t*6+k*2.1;g.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r*.6)}g.stroke()}g.restore()},(f,dt)=>{for(const e of G.E){const d=Math.hypot(x-e.x,y-e.y);if(d<260&&d>8){const k=(e.type==='boss'?.25:1)*320*dt/d;e.x+=(x-e.x)*k;e.y+=(y-e.y)*k}}if(f.t>1.15)for(const e of enm(x,y,100))hitE(e,p.d.atk*1.3,p,0,.1)});snd('zap')}});
+  sk('flameaura',{n:'ほのおのまとい',cd:15,tag:'まもる',icon:'lava',bc:'#ff7a2a',unl:3,desc:'6秒間、からだにほのおをまとい、近づく敵をやく',ai:(p,c)=>c(200)>=2,
+    fn:p=>{cast(p,'pray',.7);let acc=0;fx(6,f=>{const u=Math.min(1,f.t*4,(6-f.t)*3);g.save();g.globalAlpha=.6*u;g.strokeStyle='#ffaa4a';g.lineWidth=2;g.beginPath();g.ellipse(p.x,p.y,110,66,0,0,TAU);g.stroke();g.restore()},(f,dt)=>{acc+=dt;if(acc>.4){acc=0;for(const e of G.E)if(Math.hypot(e.x-p.x,(e.y-p.y)*1.7)<110+e.r)hitE(e,p.d.atk*.35,p,40,0);sparks(p.x+ri(-60,60),p.y+ri(-20,20),'#ffb050',1,60,-Math.PI/2,1)}});snd('boom')}});
+  sk('frostbreath',{n:'こおりのいぶき',cd:10,tag:'おそくする',icon:'icelance',bc:'#9ae8ff',unl:1,desc:'前方のはんいを凍らせ、敵を4秒おそくする',ai:(p,c)=>c(320)>=2,
+    fn:p=>{cast(p,'cast2',.85);const a=aimA(p),x0=p.x,y0=p.y;timed(.15,()=>{if(p.down)return;fx(.6,f=>{const u=f.t/.6;g.save();g.globalAlpha=(1-u)*.6;g.strokeStyle='#cff4ff';g.lineWidth=2;g.beginPath();g.moveTo(x0,y0);g.arc(x0,y0,330*Math.min(1,u*2.5),a-.5,a+.5);g.closePath();g.stroke();g.restore()});snd('zap');for(const e of G.E){const d=Math.hypot(e.x-x0,e.y-y0);if(d<330+e.r){let da=Math.atan2(e.y-y0,e.x-x0)-a;da=Math.atan2(Math.sin(da),Math.cos(da));if(Math.abs(da)<.6){e.slowT=Math.max(e.slowT||0,4);hitE(e,p.d.atk*.9,p,80,.1)}}}})}});
+  sk('warcry',{n:'いかりのさけび',cd:14,tag:'きぜつ',icon:'fist',bc:'#ff6a4a',unl:2,desc:'さけんで近くの敵をふっとばし、1秒きぜつさせる',ai:(p,c)=>c(260)>=3,
+    fn:p=>{cast(p,'smash',.9);timed(.2,()=>{if(p.down)return;ring(p.x,p.y,280,'#ff9a7a',.5,4);shk(.4);snd('boom');for(const e of enm(p.x,p.y,280)){e.stun=Math.max(e.stun||0,e.type==='boss'?.4:1);hitE(e,p.d.atk*.9,p,380,.15)}})}});
+}
+const _is8=initSkills;initSkills=function(){const first=!BASE;_is8();if(first){try{initSkills8()}catch(e){oops(e)}}};
+// ---- 見やすさ：エフェクトの上に敵をうすく重ね描き・エフェクト数の上限 ----
+function ghostE(){if(sprLow||!G||!G.E||!G.E.length)return;let n=0;for(const f of G.FX)if(!f.under)n++;if(n<6)return;
+  g.save();const vx0=cam.x-60,vx1=cam.x+(typeof vw!=='undefined'?vw:cw)+60;let c=0;for(const e of G.E){if(e.x<vx0||e.x>vx1)continue;if(++c>14)break;g.globalAlpha=e.type==='boss'?.5:.62;g.globalCompositeOperation='source-over';try{drawEnemy(e)}catch(_){}}g.restore();g.globalAlpha=1}
+const _fx33=fx;fx=function(dur,draw,upd,under){const f=_fx33(dur,draw,upd,under);if(G.FX.length>(sprLow?55:95)){for(let i=0;i<G.FX.length;i++){const o=G.FX[i];if(o!==f&&o.dur<1.2){G.FX.splice(i,1);break}}}return f};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
@@ -5170,6 +5233,7 @@ function draw(){
   drawIndic();
   for(const b of G.PR)drawPR(b);
   for(const f of G.FX)if(!f.under&&f.draw)f.draw(f);
+  ghostE();
   for(const q of G.PT)drawPT(q);
   g.globalAlpha=1;g.globalCompositeOperation='source-over';
   for(const q of G.TX)drawTX(q);g.globalAlpha=1;
