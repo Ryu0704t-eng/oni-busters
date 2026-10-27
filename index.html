@@ -900,6 +900,7 @@ function buildEditor(){
     const file=E_('input','display:none');file.type='file';file.accept='image/*';
     file.onchange=()=>{const fl=file.files[0];if(!fl)return;const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{edLoadNew(im);buildEditor()};im.src=fr.result};fr.readAsDataURL(fl)};
     const bt=E_('button','','画像をえらぶ（えらび直し）');bt.className='mid';bt.onclick=()=>file.click();pw.appendChild(bt);pw.appendChild(file);
+    {const bu=E_('button','margin-left:6px','リンクから画像をよむ');bu.className='mid';bu.onclick=()=>loadImgURL(im=>{edLoadNew(im);buildEditor()});pw.appendChild(bu)}
   }
   const showPens=custom&&ed.work&&!ed.final;
   if(showPens){
@@ -3337,7 +3338,7 @@ function initSkills8(){
 const _is8=initSkills;initSkills=function(){const first=!BASE;_is8();if(first){try{initSkills8()}catch(e){oops(e)}}};
 // ---- 見やすさ：エフェクトの上に敵をうすく重ね描き・エフェクト数の上限 ----
 function ghostE(){if(sprLow||!G||!G.E||!G.E.length)return;let n=0;for(const f of G.FX)if(!f.under)n++;if(n<6)return;
-  g.save();const vx0=cam.x-60,vx1=cam.x+(typeof vw!=='undefined'?vw:cw)+60;let c=0;for(const e of G.E){if(e.x<vx0||e.x>vx1)continue;if(++c>14)break;g.globalAlpha=e.type==='boss'?.5:.62;g.globalCompositeOperation='source-over';try{drawEnemy(e)}catch(_){}}g.restore();g.globalAlpha=1}
+  g.save();const vx0=cam.x-60,vx1=cam.x+(typeof vw!=='undefined'?vw:cw)+60;let c=0;for(const e of G.E){if(e.x<vx0||e.x>vx1)continue;if(++c>14)break;g.globalAlpha=e.type==='boss'?.6:.74;g.globalCompositeOperation='source-over';try{drawEnemy(e)}catch(_){}}g.restore();g.globalAlpha=1}
 const _fx33=fx;fx=function(dur,draw,upd,under){const f=_fx33(dur,draw,upd,under);if(G.FX.length>(sprLow?55:95)){for(let i=0;i<G.FX.length;i++){const o=G.FX[i];if(o!==f&&o.dur<1.2){G.FX.splice(i,1);break}}}return f};
 
 /* ===== v34: 体にボリューム（立体のかげ・ハイライト・リムライト） ===== */
@@ -3425,6 +3426,42 @@ const _dP35=drawPlayer;drawPlayer=function(p){
   try{_dP35(p)}finally{g.restore()}
   if(up>.25&&!sprLow){g.save();g.globalAlpha=Math.min(.22,up*.2);g.fillStyle='#10082a';g.beginPath();g.ellipse(p.x,p.y-40,26,50,0,0,TAU);g.fill();g.restore()}};
 
+/* ===== v36: 状態マーク・飛び道具・ボス注目・エフェクトの見やすさ ===== */
+const BLAB={'★':'スタン','❄':'おそい','≫':'はやい','↑':'パワー','◇':'シールド','×':'ガード崩','!':'ちゅうい','盾':'ガード','怒':'いかり'};
+badge=function(x,y,col,gl,sz){sz=Math.max(11,(sz||8)+3);const lab=BLAB[gl];g.save();g.fillStyle='rgba(10,6,30,.88)';g.beginPath();g.arc(x,y,sz+2.5,0,TAU);g.fill();g.strokeStyle=col;g.lineWidth=2;g.beginPath();g.arc(x,y,sz+2.5,0,TAU);g.stroke();g.fillStyle=col;g.beginPath();g.arc(x,y,sz,0,TAU);g.fill();
+  g.fillStyle='#10081e';g.font='900 '+Math.round(sz*1.15)+'px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(gl,x,y+.5);
+  if(lab){g.font='900 10px sans-serif';g.lineJoin='round';g.lineWidth=3;g.strokeStyle='rgba(8,4,24,.95)';g.strokeText(lab,x,y+sz+10);g.fillStyle=col;g.fillText(lab,x,y+sz+10)}g.restore()};
+badges=function(x,y,list){const n=list.length;if(!n)return;const sp=40,x0=x-(n-1)*sp/2,yy=y-12;list.forEach((b,i)=>badge(x0+i*sp,yy,b[0],b[1],b[2]))};
+// ---- ボス注目：ロックオン線とレティクル ----
+drawReticle=function(b){
+  const K=b.type==='boss'?1.2:1,t=G.t*2.2,rad=(b.r+18)*K,L=G.L;
+  g.save();
+  if(L&&!L.down){const dx=b.x-L.x,dy=b.y-L.y,d=Math.hypot(dx,dy);if(d>rad+60){const ux=dx/d,uy=dy/d;g.globalAlpha=.55;g.strokeStyle='rgba(255,90,120,.95)';g.lineWidth=2.5;g.setLineDash([12,10]);g.lineDashOffset=-G.t*50;g.beginPath();g.moveTo(L.x+ux*50,L.y+uy*30-20);g.lineTo(b.x-ux*rad,b.y-uy*rad*.6);g.stroke();g.setLineDash([])}}
+  g.globalAlpha=1;g.translate(b.x,b.y);g.strokeStyle='rgba(255,70,110,.95)';g.lineWidth=4;
+  for(let k=0;k<4;k++){const a=t+k*Math.PI/2;g.beginPath();g.arc(0,0,rad,a,a+.9);g.stroke()}
+  g.lineWidth=2;g.globalAlpha=.7;g.beginPath();g.arc(0,0,rad*.72,-t*1.4,-t*1.4+Math.PI*1.2);g.stroke();g.globalAlpha=1;
+  const ty=-b.r*2*K-64+Math.sin(G.t*6)*3;g.fillStyle='rgba(255,70,110,.98)';g.beginPath();g.moveTo(-12,ty-14);g.lineTo(12,ty-14);g.lineTo(0,ty+6);g.closePath();g.fill();
+  g.font='900 13px sans-serif';g.textAlign='center';g.lineJoin='round';g.lineWidth=4;g.strokeStyle='rgba(20,0,10,.95)';g.strokeText('ロックオン',0,ty-26);g.fillStyle='#ffd0da';g.fillText('ロックオン',0,ty-26);
+  g.restore()};
+// ---- 飛び道具：てきの弾は当たり判定の輪つき、味方の弾は暗いふちでくっきり ----
+const _dPR36=drawPR;drawPR=function(b){
+  if(!b.big&&b.team!=='p'){g.save();g.globalAlpha=.55+.25*Math.sin(G.t*20);g.strokeStyle='#ff4a6a';g.lineWidth=2;g.beginPath();g.arc(b.x,b.y-(b.z||0),b.r+5,0,TAU);g.stroke();g.restore()}
+  else if(!b.big&&b.team==='p'){g.save();g.globalAlpha=.6;g.fillStyle='rgba(8,4,28,.9)';g.beginPath();g.arc(b.x,b.y-(b.z||0),b.r*1.25+1.5,0,TAU);g.fill();g.restore()}
+  _dPR36(b)};
+// ---- エフェクトのうすめ：敵がいるとき、上のエフェクトの濃さをおさえる ----
+let _fxD=0;const _gaD=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'globalAlpha');
+function fxDim(on,k){if(on&&!_fxD&&_gaD){_fxD=k;try{Object.defineProperty(g,'globalAlpha',{configurable:true,get(){return _gaD.get.call(this)/_fxD},set(v){_gaD.set.call(this,v*_fxD)}})}catch(_){_fxD=0}}
+  else if(!on&&_fxD){try{delete g.globalAlpha}catch(_){}_fxD=0;try{g.globalAlpha=1}catch(_){}}}
+function fxDimStart(){if(sprLow||!G||!G.E||!G.E.length)return;let n=0;for(const f of G.FX)if(!f.under)n++;if(n>4)fxDim(1,G.focus?.55:.68)}
+function fxDimEnd(){fxDim(0)}
+
+function loadImgURL(cb){
+  let u=prompt('画像のリンク（URL）をはりつけてね\n（https:// ではじまる、画像ファイルそのもののリンク）');if(!u)return;u=u.trim();
+  const fail=()=>alert('このリンクからは読みこめませんでした。\n・画像ファイルそのもののリンク（.png .jpg など）か確認してね\n・サイトによっては外から読みこめません。その場合は画像を保存して「画像をえらぶ」から選んでね');
+  const done=im=>{try{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').getImageData(0,0,1,1);cb(im)}catch(e){fail()}};
+  const tryImg=src=>new Promise((ok,ng)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>ok(im);im.onerror=ng;im.src=src});
+  tryImg(u).then(done).catch(()=>{
+    fetch(u,{mode:'cors'}).then(r=>{if(!r.ok)throw 0;return r.blob()}).then(b=>{const url=URL.createObjectURL(b);return tryImg(url)}).then(done).catch(fail)})}
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
@@ -4149,7 +4186,7 @@ function update(dt){
   // カメラ
   const S=scale(),vw=cw/S,vh=ch/S,L=G.L;
   let ccx=L.x,ccy=L.y;const bz=bossE();
-  if(G.focus&&bz){ccx=L.x+(bz.x-L.x)*.42;ccy=L.y+(bz.y-L.y)*.42}
+  if(G.focus&&bz){ccx=L.x+(bz.x-L.x)*.52;ccy=L.y+(bz.y-L.y)*.52}
   let tx=vw>=WW?(WW-vw)/2:clamp(ccx-vw/2,0,WW-vw);
   let ty=vh>=WH?(WH-vh)/2:clamp(ccy-vh/2+vh*.08,0,WH-vh);
   if(G.focus&&bz){if(vw<WW)tx=clamp(clamp(tx,L.x-vw*.64,L.x-vw*.22),0,WW-vw);if(vh<WH)ty=clamp(clamp(ty,L.y-vh*.7,L.y-vh*.28),0,WH-vh)}
@@ -5317,7 +5354,7 @@ function draw(){
   {const bb=bossE();if(bb&&G.focus)drawReticle(bb)}
   drawIndic();
   for(const b of G.PR)drawPR(b);
-  for(const f of G.FX)if(!f.under&&f.draw)f.draw(f);
+  fxDimStart();try{for(const f of G.FX)if(!f.under&&f.draw)f.draw(f)}finally{fxDimEnd()}
   ghostE();
   for(const q of G.PT)drawPT(q);
   g.globalAlpha=1;g.globalCompositeOperation='source-over';
