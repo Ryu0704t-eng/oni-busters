@@ -3340,6 +3340,91 @@ function ghostE(){if(sprLow||!G||!G.E||!G.E.length)return;let n=0;for(const f of
   g.save();const vx0=cam.x-60,vx1=cam.x+(typeof vw!=='undefined'?vw:cw)+60;let c=0;for(const e of G.E){if(e.x<vx0||e.x>vx1)continue;if(++c>14)break;g.globalAlpha=e.type==='boss'?.5:.62;g.globalCompositeOperation='source-over';try{drawEnemy(e)}catch(_){}}g.restore();g.globalAlpha=1}
 const _fx33=fx;fx=function(dur,draw,upd,under){const f=_fx33(dur,draw,upd,under);if(G.FX.length>(sprLow?55:95)){for(let i=0;i<G.FX.length;i++){const o=G.FX[i];if(o!==f&&o.dur<1.2){G.FX.splice(i,1);break}}}return f};
 
+/* ===== v34: 体にボリューム（立体のかげ・ハイライト・リムライト） ===== */
+const _SHC=new Map(),_SHW=new WeakMap();
+function volShade(S,mir){
+  const w=S.width||S.naturalWidth,h=S.height||S.naturalHeight;if(!w||!h)return S;
+  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.drawImage(S,0,0);
+  // 中身のはんい
+  const sw=Math.max(8,Math.min(96,w>>2)),shh=Math.max(8,Math.round(sw*h/w)),t=document.createElement('canvas');t.width=sw;t.height=shh;const tx=t.getContext('2d');tx.drawImage(S,0,0,sw,shh);
+  let x0=sw,x1=0,y0=shh,y1=0;try{const D=tx.getImageData(0,0,sw,shh).data;for(let yy=0;yy<shh;yy++)for(let xx=0;xx<sw;xx++)if(D[(yy*sw+xx)*4+3]>40){if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(yy<y0)y0=yy;if(yy>y1)y1=yy}}catch(_){return S}
+  if(x1<=x0||y1<=y0)return S;
+  const kx=w/sw,ky=h/shh;x0*=kx;x1=(x1+1)*kx;y0*=ky;y1=(y1+1)*ky;const bw=x1-x0,bh=y1-y0;
+  const L=document.createElement('canvas');L.width=w;L.height=h;const lx=L.getContext('2d');
+  let gr=lx.createLinearGradient(x0,0,x1,0);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.45,'rgba(255,255,255,1)');gr.addColorStop(.8,'rgba(196,186,236,1)');gr.addColorStop(1,'rgba(150,138,206,1)');
+  lx.fillStyle='#fff';lx.fillRect(0,0,w,h);lx.fillStyle=gr;lx.fillRect(x0,0,bw,h);
+  gr=lx.createLinearGradient(0,y0,0,y1);gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(.55,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(150,140,200,.7)');lx.fillStyle=gr;lx.fillRect(0,y0,w,bh);
+  lx.globalCompositeOperation='destination-in';lx.drawImage(S,0,0);
+  x.globalCompositeOperation='multiply';x.drawImage(L,0,0);
+  x.globalCompositeOperation='source-atop';
+  gr=x.createRadialGradient(x0+bw*.3,y0+bh*.25,2,x0+bw*.3,y0+bh*.25,Math.max(bw,bh)*.45);gr.addColorStop(0,'rgba(255,248,230,.10)');gr.addColorStop(1,'rgba(255,248,230,0)');x.fillStyle=gr;x.fillRect(0,0,w,h);
+  // 右ふちのリムライト（かげ側のふちを細く光らせる）
+  const sh=document.createElement('canvas');sh.width=w;sh.height=h;const sx=sh.getContext('2d');sx.drawImage(S,0,0);sx.globalCompositeOperation='destination-out';const d=Math.max(2,Math.round(w/110));sx.drawImage(S,-d,0);sx.drawImage(S,-d*.6,d*.8);
+  sx.globalCompositeOperation='source-in';sx.fillStyle='rgba(170,230,255,.62)';sx.fillRect(0,0,w,h);
+  x.globalCompositeOperation='source-atop';x.drawImage(sh,0,0);
+  x.globalCompositeOperation='source-over';return c}
+const _sprSrc34=sprSrc;
+function shadeSrc(k,m,S,gh,fl){if(gh||fl||!S||sprLow&&0)return S;const key=k+'|'+m+'|'+(S.width||0);let c=_SHC.get(key);if(c===undefined){try{c=volShade(S,m)}catch(_){c=S}_SHC.set(key,c)}return c}
+function shadeIm(im){if(!im||!(im.width||im.naturalWidth)||(im.complete===false))return im;let c=_SHW.get(im);if(c===undefined){try{c=volShade(im,0)}catch(_){c=im}_SHW.set(im,c)}return c}
+const _ae34=artEnemy;artEnemy=function(e,im,o){return _ae34(e,shadeIm(im),o)};
+
+/* ===== v35: ゲット文字の演出・ボスの迫力 ===== */
+const GTRE=/ゲット|宝箱|🪙|🎀|かいふく|ゲージ|仲間|入手|ドロップ|^\+|レアド/;
+const _txt35=txt;txt=function(x,y,s,col,big){_txt35(x,y,s,col,big);if(big&&typeof s==='string'&&GTRE.test(s)){const q=G.TX[G.TX.length-1];if(q&&q.s===s){q.gt=1;q.life=1.7}}};
+const _dTX35=drawTX;drawTX=function(q){
+  if(!q.gt)return _dTX35(q);
+  try{const T=1.7,u=Math.max(0,1-q.life/T);const pop=u<.16?(()=>{const t=u/.16,c=1.9;return 1+c*Math.pow(t-1,3)+(c-1)*Math.pow(t-1,2)+.0})():1;const sc=(u<.16?pop*1.0:1)*(u>.78?1+(u-.78)*.6:1);
+    const fy=-Math.min(1,u*2.2)*34-u*14,al=u>.74?Math.max(0,(1-u)/.26):1,size=26,col=q.col||'#ffd24a';
+    g.save();g.translate(q.x,q.y+fy);g.globalAlpha=al;g.scale(Math.max(.2,sc),Math.max(.2,sc));
+    g.font='900 '+size+'px '+FONT;g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';const tw=g.measureText(q.s).width;
+    // 後ろの光
+    if(u<.5){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=al*(1-u*2)*.7;const gr=g.createRadialGradient(0,0,2,0,0,tw*.7);gr.addColorStop(0,col);gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.beginPath();g.ellipse(0,0,tw*.7,size*1.1,0,0,TAU);g.fill();g.restore()}
+    // リボン線
+    const rw=tw/2+30,rg=g.createLinearGradient(-rw,0,rw,0);rg.addColorStop(0,'rgba(255,255,255,0)');rg.addColorStop(.5,col);rg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=rg;g.globalAlpha=al*.85;const lw=Math.min(1,u*5);g.fillRect(-rw*lw,size*.62,rw*2*lw,2.5);g.fillRect(-rw*lw*.7,-size*.74,rw*1.4*lw,2);
+    g.globalAlpha=al;
+    // 文字：ふち2重＋グラデ
+    g.lineWidth=size*.42;g.strokeStyle='rgba(20,6,40,.95)';g.strokeText(q.s,0,0);g.lineWidth=size*.2;g.strokeStyle=col;g.strokeText(q.s,0,0);
+    const fg=g.createLinearGradient(0,-size*.6,0,size*.6);fg.addColorStop(0,'#fff');fg.addColorStop(.45,'#fff6d0');fg.addColorStop(1,col);g.fillStyle=fg;g.fillText(q.s,0,0);
+    // きらめきがスッと横切る
+    if(u>.12&&u<.45){const sx=-tw/2+(u-.12)/.33*tw;g.save();g.globalCompositeOperation='lighter';const sg=g.createLinearGradient(sx-14,0,sx+14,0);sg.addColorStop(0,'rgba(255,255,255,0)');sg.addColorStop(.5,'rgba(255,255,255,.75)');sg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=sg;g.fillRect(sx-14,-size*.6,28,size*1.2);g.restore()}
+    // まわりの星
+    g.globalCompositeOperation='lighter';g.fillStyle='#fff';for(let i=0;i<5;i++){const a=i/5*TAU+u*3,r=tw*.55+10+Math.sin(u*10+i)*5,x=Math.cos(a)*r,y=Math.sin(a)*r*.55,s=(1-u)*5*(.6+.4*Math.sin(u*14+i*2));g.globalAlpha=al*.8;g.beginPath();g.moveTo(x,y-s*1.6);g.lineTo(x+s*.4,y-s*.4);g.lineTo(x+s*1.6,y);g.lineTo(x+s*.4,y+s*.4);g.lineTo(x,y+s*1.6);g.lineTo(x-s*.4,y+s*.4);g.lineTo(x-s*1.6,y);g.lineTo(x-s*.4,y-s*.4);g.closePath();g.fill()}
+    g.restore()}catch(e){try{g.restore()}catch(_){}}};
+// ---- ボスの迫力 ----
+const _dE35=drawEnemy;
+drawEnemy=function(e){
+  if(e.type!=='boss'||!G)return _dE35(e);
+  const A=(typeof BART!=='undefined'&&BART[e.bk])||null,rgb=A?A.rgb:'255,60,50',em=A?A.em:'#ff5a4a',alive=!(e.dead>0);
+  const rage=e.hp<e.maxhp*.25,K=1.2+(rage?.04*Math.sin(G.t*9):0),R=Math.random;
+  if(alive&&!sprLow){
+    // 足もとのオーラ
+    g.save();g.translate(e.x,e.y+e.r*.15);g.globalCompositeOperation='lighter';const pu=.5+.5*Math.sin(G.t*(rage?7:3));const rr=e.r*(2.6+pu*.4+(rage?.5:0));
+    const gr=g.createRadialGradient(0,0,e.r*.4,0,0,rr);gr.addColorStop(0,'rgba('+rgb+','+(.30+pu*.12+(rage?.15:0))+')');gr.addColorStop(.6,'rgba('+rgb+',.1)');gr.addColorStop(1,'rgba('+rgb+',0)');g.fillStyle=gr;g.beginPath();g.ellipse(0,0,rr,rr*.42,0,0,TAU);g.fill();
+    g.globalAlpha=.35+pu*.2;g.strokeStyle='rgba('+rgb+',.9)';g.lineWidth=2;g.setLineDash([14,10]);g.lineDashOffset=-G.t*30;g.beginPath();g.ellipse(0,0,e.r*1.7,e.r*.7,0,0,TAU);g.stroke();g.restore();
+    // おき火
+    if(R()<(rage?.5:.22))pt({x:e.x+ri(-e.r,e.r),y:e.y-ri(0,e.r*1.6),vx:ri(-18,18),vy:-40-R()*60,life:.9,sz:2.5+R()*3,col:em,k:'gl'});
+    // 足音：歩くたびにずしん
+    const px=e._px===undefined?e.x:e._px,py=e._py===undefined?e.y:e._py;e._st=(e._st||0)+Math.hypot(e.x-px,e.y-py);e._px=e.x;e._py=e.y;
+    if(e._st>95){e._st=0;shk(.14);ring(e.x,e.y+e.r*.5,e.r*1.3,em,.4,2);sparks(e.x+ri(-e.r,e.r),e.y+e.r*.6,'#cbb8a0',4,120,-Math.PI/2,2.6);try{decal(e.x,e.y+e.r*.5,e.r*.7,'rgba(10,4,16,.5)',6)}catch(_){}}
+  }
+  g.save();g.translate(e.x,e.y);g.scale(K,K);g.translate(-e.x,-e.y);try{_dE35(e)}finally{g.restore()}};
+// ボス撃破：大爆発
+const _kE35=killE;killE=function(e,src){_kE35(e,src);try{if(e&&e.type==='boss'){const em=(BART[e.bk]&&BART[e.bk].em)||'#ffd24a';
+  for(let k=0;k<4;k++)timed(k*.18,()=>{shock(e.x,e.y,e.r*(3+k),k%2?'#fff':em,.6);ring(e.x,e.y,e.r*(2.4+k*.8),em,.6,4);shk(.6)});
+  rays(e.x,e.y-e.r,30,e.r*5,24,'#fff4c0',.9,5);starFlash(e.x,e.y-e.r,e.r*3,'#fff',.5);
+  for(let k=0;k<10;k++)timed(.1+k*.09,()=>{const x=e.x+ri(-e.r*1.4,e.r*1.4),y=e.y-ri(0,e.r*2);burst(x,y,em,10,260);ring(x,y,60,'#fff',.35,2)});
+  G.hs=Math.max(G.hs||0,.2);slowmo(1.2,.25)}}catch(_){}};
+// ---- どの向きでも自然に：上下移動の遠近・ななめ移動のかたむき ----
+const _dP35=drawPlayer;drawPlayer=function(p){
+  if(p.down||!G)return _dP35(p);
+  const sp=(p.d&&p.d.spd)||150,vx=(p.vx||0)/(sp*1.2),vy=(p.vy||0)/(sp*1.2);
+  p._dvy=(p._dvy||0)+(vy-(p._dvy||0))*.12;p._dvx=(p._dvx||0)+(vx-(p._dvx||0))*.12;
+  const up=Math.max(0,-p._dvy),dn=Math.max(0,p._dvy);
+  const sy=1-up*.06+dn*.035,sxk=1-up*.04+dn*.02,sk=p._dvx*p._dvy*.10;
+  g.save();g.translate(p.x,p.y);g.transform(sxk,0,sk,sy,0,0);g.translate(-p.x,-p.y);
+  try{_dP35(p)}finally{g.restore()}
+  if(up>.25&&!sprLow){g.save();g.globalAlpha=Math.min(.22,up*.2);g.fillStyle='#10082a';g.beginPath();g.ellipse(p.x,p.y-40,26,50,0,0,TAU);g.fill();g.restore()}};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
@@ -4838,7 +4923,7 @@ function drawSpriteBody(p){
   const sx=(Math.abs(sfv)<.18?.18*(sfv<0?-1:1):sfv)*(s.nat||1);
   const m=(sx<0)?1:0;
   const dep=.94+.12*Math.min(1,Math.max(0,p.y/WH));
-  const flat=!!s.flat,src=(flat&&!gh&&!fl)?s.im:sprSrc(k,m,gh,fl),ext=gh?null:sprTint(k,'rgba(70,255,190,.95)');
+  const flat=!!s.flat,src=shadeSrc(k,m,(flat&&!gh&&!fl)?s.im:sprSrc(k,m,gh,fl),gh,fl),ext=gh?null:sprTint(k,'rgba(70,255,190,.95)');
   const st=sprStep(p,H,dtp),A=st.a,B=st.b;
   /* 表現レイヤー：歩き・待機・攻撃・被弾でイラスト全体を大きく動かす */
   const spdK=Math.min(1.4,Math.hypot(p.vx||0,p.vy||0)/(p.d.spd||150));
