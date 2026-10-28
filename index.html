@@ -3710,6 +3710,26 @@ function initSkills10(){
 }
 const _is10=initSkills;initSkills=function(){const first=!BASE;_is10();if(first){try{initSkills10()}catch(e){oops(e)}}};
 
+/* ===== v43: ランク評価・オート攻撃・はじめての説明 ===== */
+let AUTOATK=false;try{AUTOATK=localStorage.getItem('oni_auto')==='1'}catch(_){}
+let _autoSet=false;
+const _up43=update;update=function(dt){
+  try{if(G&&G.L&&!G.L.down&&AUTOATK&&typeof inp!=='undefined'){const L=G.L,r=(L.d&&L.d.reach||120)+50;let near=false;for(const e of G.E){if(e.crys&&0)continue;if(Math.hypot(e.x-L.x,e.y-L.y)<r+e.r){near=true;break}}
+    if(near){inp.atk=true;_autoSet=true}else if(_autoSet){inp.atk=false;_autoSet=false}}}catch(_){}
+  _up43(dt)};
+// ランク評価
+const _aw43=awardCoins;awardCoins=function(mode,I){
+  let html=_aw43(mode,I);
+  try{if(I&&I.win){const downs=G.downs||0,t=G.t||0,N=Math.max(1,G.N||G.wave||1),per=t/N;let sc=100-downs*22-Math.max(0,per-80)*.35;sc=Math.max(0,Math.min(100,sc));
+      const rk=sc>=88?'S':sc>=70?'A':sc>=50?'B':'C',col={S:'#ffd24a',A:'#ff9ac8',B:'#8fd0ff',C:'#c9c3e6'}[rk],bonus={S:80,A:40,B:15,C:0}[rk];
+      if(bonus&&!G._rkd){G._rkd=1;WAL.coin+=bonus;WAL.tot+=bonus;saveWal()}
+      html='<div style="margin:6px 0 2px;display:flex;align-items:center;justify-content:center;gap:12px"><div style="font-family:\'Dela Gothic One\',sans-serif;font-size:54px;line-height:1;color:'+col+';text-shadow:0 0 18px '+col+',0 3px 0 rgba(20,6,40,.8)">'+rk+'</div><div style="text-align:left;font-size:12px;color:#d8d2f0;line-height:1.6">ランク評価<br>たおれた回数：'+downs+'<br>'+(bonus?'<b style="color:'+col+'">ボーナス 🪙+'+bonus+'</b>':'ボーナスなし')+'</div></div>'+html}}catch(_){}
+  return html};
+// せってい画面にオート攻撃を追加
+const _oh43=openHelp;openHelp=function(){_oh43();try{const S=document.getElementById('helpSet');if(S&&!document.getElementById('btnAutoAtk')){const b=document.createElement('button');b.className='mid';b.id='btnAutoAtk';b.style.width='100%';const up=()=>{b.textContent='オート攻撃：'+(AUTOATK?'オン（敵が近いと自動で攻撃）':'オフ')};up();b.onclick=()=>{AUTOATK=!AUTOATK;try{localStorage.setItem('oni_auto',AUTOATK?'1':'0')}catch(_){}up()};S.appendChild(b)}}catch(_){}};
+// はじめて遊ぶとき、操作せつめいを見せる
+const _sg43=startGame;startGame=function(w0,cfg){_sg43(w0,cfg);try{if(localStorage.getItem('oni_help_seen')!=='1'){localStorage.setItem('oni_help_seen','1');setTimeout(()=>{try{if(state==='play'){pauseGame();openHelp()}}catch(_){}},900)}}catch(_){}};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
