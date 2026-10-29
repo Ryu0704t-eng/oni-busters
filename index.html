@@ -139,7 +139,7 @@ button.mid{font-size:15px;font-weight:700;padding:10px 26px;border-radius:30px;b
 const $=id=>document.getElementById(id);
 const cv=$('cv'),g=cv.getContext('2d');
 let cw=1,ch=1,dpr=1;
-function resize(){dpr=Math.min(window.devicePixelRatio||1,window.__lowdpr?1.25:(window.__hidpr?2:1.6));cw=window.innerWidth;ch=window.innerHeight;cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr)}
+function resize(){dpr=Math.min(window.devicePixelRatio||1,window.__lowdpr?1.2:(window.__hidpr?2:1.4));cw=window.innerWidth;ch=window.innerHeight;cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr)}
 window.addEventListener('resize',resize);resize();
 const R=Math.random,TAU=Math.PI*2,clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -260,7 +260,7 @@ const MAPS=[
   {id:'moon',n:'月夜の広場'},{id:'town',n:'住宅街'},{id:'mall',n:'ショッピングモール'},
   {id:'shrine',n:'神社のお祭り'},{id:'school',n:'夜の学校'},{id:'beach',n:'海辺の街'}
 ];
-const STAGE_MAP=[1,3,2,4,5,0];           // クエスト各ステージの舞台
+const STAGE_MAP=[1,3,2,4,5,0,5,3,4,2];           // クエスト各ステージの舞台
 const CH_MAP={rush:0,iron:2,time:5};
 let mapSel=-1;try{const v=localStorage.getItem('oni_map');if(v!==null)mapSel=+v}catch(e){}
 function pickMap(cfg){
@@ -435,7 +435,7 @@ function drawMini(){
   g.save();
   g.fillStyle='rgba(0,0,0,.7)';rr(x0-4,y0-4,sz+8,sz+8,10);g.fill();
   rr(x0,y0,sz,sz,7);g.clip();
-  g.drawImage(bgc,x0,y0,sz,sz);
+  g.drawImage(bgMini(sz),x0,y0,sz,sz);
   g.fillStyle='rgba(10,6,30,.12)';g.fillRect(x0,y0,sz,sz);
   g.strokeStyle='rgba(255,255,255,.14)';g.lineWidth=1;for(let q=1;q<4;q++){g.beginPath();g.moveTo(x0+sz*q/4,y0);g.lineTo(x0+sz*q/4,y0+sz);g.moveTo(x0,y0+sz*q/4);g.lineTo(x0+sz,y0+sz*q/4);g.stroke()}
   const S=scale(),vw=cw/S,vh=ch/S;
@@ -3887,6 +3887,135 @@ function bossGimmick2Draw(){const b=bossE(),m=G.bbeam;
 const _dE48=drawEnemy;drawEnemy=function(e){if(!e.orb)return _dE48(e);const t=G.t,u=Math.max(0,e._ot/7);g.save();g.translate(e.x,e.y);g.fillStyle='rgba(0,0,0,.25)';g.beginPath();g.ellipse(0,2,20,8,0,0,TAU);g.fill();g.translate(0,-30+Math.sin(t*3+e.x)*4);g.globalCompositeOperation='lighter';const gr=g.createRadialGradient(0,0,2,0,0,34);gr.addColorStop(0,'#fff');gr.addColorStop(.4,e.flash>0?'#fff':'#c080ff');gr.addColorStop(1,'rgba(160,80,255,0)');g.fillStyle=gr;g.beginPath();g.arc(0,0,34,0,TAU);g.fill();g.globalCompositeOperation='source-over';g.strokeStyle='#e8c8ff';g.lineWidth=3;g.beginPath();g.arc(0,0,22,-Math.PI/2,-Math.PI/2+TAU*u);g.stroke();
   const w=44,h=Math.max(0,e.hp/e.maxhp);g.translate(0,34);g.fillStyle='rgba(0,0,0,.6)';g.fillRect(-w/2,0,w,6);g.fillStyle='#c080ff';g.fillRect(-w/2,0,w*h,6);g.restore()};
 
+// v49: PC等で縦に収まらないメニュー画面を自動縮小
+(function(){
+  let busy=false,tm=0;
+  function fit(){
+    if(busy)return;busy=true;
+    try{
+      document.querySelectorAll('.ov').forEach(ov=>{
+        if(ov.offsetParent===null&&getComputedStyle(ov).position!=='fixed')return;
+        if(getComputedStyle(ov).display==='none')return;
+        const kids=[...ov.children].filter(c=>c.tagName!=='CANVAS'&&getComputedStyle(c).position!=='fixed'&&getComputedStyle(c).position!=='absolute');
+        kids.forEach(c=>{c.style.zoom=''});
+        const need=ov.scrollHeight,have=ov.clientHeight;
+        if(have>0&&need>have+2){
+          const k=Math.max(.5,(have-2)/need);
+          kids.forEach(c=>{c.style.zoom=String(k)});
+        }
+      });
+    }catch(_){}
+    busy=false;
+  }
+  function sched(){clearTimeout(tm);tm=setTimeout(fit,120)}
+  window.addEventListener('resize',sched);
+  try{new MutationObserver(sched).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']})}catch(_){}
+  setInterval(()=>{if(!document.hidden)fit()},1500);
+  sched();
+})();
+
+// v50: 背景は見えている範囲だけ描く / ミニマップは縮小版をキャッシュ
+function bgDraw(S,Z){
+  const m=60,vw=cw/S/(Z>1?Z:1),vh=ch/S/(Z>1?Z:1),cx=cam.x+cw/S/2,cy=cam.y+ch/S/2;
+  let x0=Math.floor(cx-vw/2-m),y0=Math.floor(cy-vh/2-m),x1=Math.ceil(cx+vw/2+m),y1=Math.ceil(cy+vh/2+m);
+  x0=Math.max(0,x0);y0=Math.max(0,y0);x1=Math.min(WW,x1);y1=Math.min(WH,y1);
+  if(x1<=x0||y1<=y0){g.drawImage(bgc,0,0);return}
+  g.drawImage(bgc,x0,y0,x1-x0,y1-y0,x0,y0,x1-x0,y1-y0);
+}
+let _bgm=null,_bgmSrc=null,_bgmSz=0;
+function bgMini(sz){
+  sz=Math.max(16,Math.round(sz*(window.devicePixelRatio>1?1.5:1)));
+  if(_bgm&&_bgmSrc===bgc&&_bgmSz===sz)return _bgm;
+  const c=document.createElement('canvas');c.width=c.height=sz;
+  const x=c.getContext('2d');x.imageSmoothingQuality='medium';x.drawImage(bgc,0,0,sz,sz);
+  _bgm=c;_bgmSrc=bgc;_bgmSz=sz;return c;
+}
+
+/* ===== 飽きない要素：ウェーブクリアごとの強化3択 ===== */
+const PERKS=[
+ {id:'atk',n:'ちから',ic:'⚔',d:'こうげき力 +15%',c:'#ff8a5a'},
+ {id:'hp',n:'タフネス',ic:'❤',d:'さいだいHP +20%＆少し回復',c:'#ff6a8a',now:p=>{const a=p.maxhp*.2/1.2;p.maxhp=Math.round(p.maxhp*1.2);if(!p.down)p.hp=Math.min(p.maxhp,p.hp+a+p.maxhp*.1)}},
+ {id:'def',n:'まもり',ic:'🛡',d:'うけるダメージ -12%',c:'#8ac8ff'},
+ {id:'cd',n:'はやわざ',ic:'⏱',d:'わざのクールタイム短縮',c:'#9af0ff'},
+ {id:'crit',n:'会心',ic:'✦',d:'10%で1.7倍ダメージ',c:'#ffd24a'},
+ {id:'vamp',n:'きゅうけつ',ic:'🩸',d:'与えたダメージの3%を回復',c:'#ff5a7a'},
+ {id:'regen',n:'じこ再生',ic:'🌿',d:'HPがじわじわ回復',c:'#7dffa0'},
+ {id:'ult',n:'必殺チャージ',ic:'⚡',d:'必殺ゲージ +45（全員）',c:'#ffe27a',now:p=>{p.ult=Math.min(100,p.ult+45)}},
+ {id:'full',n:'きゅうきょく回復',ic:'✚',d:'全員のHPを全回復',c:'#7dffe0',once:1,now:p=>{if(p.down){p.down=false;p.inv=1.5}p.hp=p.maxhp}}
+];
+function pkN(id){return (G&&G.pk&&G.pk[id])||0}
+function pkOwner(src){if(!src)return null;if(G.P.indexOf(src)>=0)return src;try{if(typeof CASTER!=='undefined'&&CASTER&&G.P.indexOf(CASTER)>=0)return CASTER}catch(_){}return null}
+const _hE50=hitE;hitE=function(e,dmg,src,kb,stun){
+  try{if(G&&G.pk){const o=pkOwner(src);if(o){
+    if(G.pk.atk)dmg*=1+.15*G.pk.atk;
+    if(G.pk.crit&&Math.random()<.1*G.pk.crit){dmg*=1.7;txt(e.x,e.y-(e.r||20)*1.8,'会心！','#ffb04a',true)}
+    if(G.pk.vamp&&dmg>0&&!G.noheal){const a=Math.min(dmg,2000)*.03*G.pk.vamp;if(a>=.5)o.hp=Math.min(o.maxhp,o.hp+a)}
+  }}}catch(_){}
+  return _hE50(e,dmg,src,kb,stun)};
+const _hp50=hurtP;hurtP=function(p,dmg){try{if(G&&G.pk&&G.pk.def&&G.P.indexOf(p)>=0)dmg*=Math.pow(.88,G.pk.def)}catch(_){}return _hp50(p,dmg)};
+const _up50=update;update=function(dt){
+  _up50(dt);
+  try{if(G&&G.pk&&G.P){
+    if(G.pk.cd)for(const p of G.P){p.cd[0]=Math.max(0,p.cd[0]-dt*.18*G.pk.cd);p.cd[1]=Math.max(0,p.cd[1]-dt*.18*G.pk.cd)}
+    if(G.pk.regen&&!G.noheal)for(const p of G.P)if(!p.down&&p.hp<p.maxhp)p.hp=Math.min(p.maxhp,p.hp+p.maxhp*.007*G.pk.regen*dt);
+    if(G.zk>0)G.zk=Math.max(0,G.zk-dt*3.2);
+    // 走りのほこり
+    const L=G.L;if(L&&!L.down&&!sprLow){G._du=(G._du||0)-dt;const sp=Math.hypot(L.vx||0,L.vy||0);if(G._du<=0&&(sp>60||(inp&&(inp.mx||inp.my)))){G._du=.16;for(let k=0;k<2;k++)pt({x:L.x+ri(-8,8),y:L.y+2,vx:ri(-30,30),vy:ri(-26,-6),life:ri(.25,.4),col:'rgba(220,210,190,.55)',sz:ri(2,3.4),k:'sq',fr:.9})}}
+  }}catch(_){}
+};
+// ヒット時のカメラキック（必殺・強攻撃で画面がぐっと寄る）
+const _hk50=hitE;hitE=function(e,dmg,src,kb,stun){
+  try{if(G&&G.P&&src&&G.P.indexOf(src)>=0&&src.d&&dmg>=src.d.atk*2.4)G.zk=Math.min(1,Math.max(G.zk||0,.35+Math.min(.65,dmg/(src.d.atk*8))))}catch(_){}
+  return _hk50(e,dmg,src,kb,stun)};
+const _nw50=newGame;newGame=function(w0,cfg){_nw50(w0,cfg);try{G.pk={};G.zk=0}catch(_){}};
+const _wc50=waveClear;waveClear=function(){_wc50();try{if(G&&G.phase==='clear'&&!G.over&&state==='play')setTimeout(()=>{try{if(G&&G.phase==='clear'&&state==='play')openPerk()}catch(_){}},700)}catch(_){}};
+function openPerk(){
+  const pool=PERKS.filter(k=>!(k.once&&pkN(k.id)));
+  const pick=[];while(pick.length<3&&pool.length){pick.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0])}
+  state='perk';inp.atk=false;joy=null;inp.mx=inp.my=0;try{ptrs.clear()}catch(_){}
+  const ov=document.createElement('div');ov.id='perkOv';
+  ov.style.cssText='position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,6,22,.78);padding:12px;box-sizing:border-box;gap:10px;font-family:inherit';
+  const h=document.createElement('div');h.textContent='✨ 強化をえらぼう（WAVE '+G.wave+' クリア）';h.style.cssText='color:#ffe27a;font-weight:900;font-size:clamp(16px,4vw,24px);text-shadow:0 2px 6px #000';ov.appendChild(h);
+  const row=document.createElement('div');row.style.cssText='display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:100%';ov.appendChild(row);
+  const done=k=>{if(!document.getElementById('perkOv'))return;G.pk[k.id]=(G.pk[k.id]||0)+1;if(k.now)for(const p of G.P)k.now(p);
+    try{snd('clear');txt(G.L.x,G.L.y-110,k.n+'！','#ffe27a',true)}catch(_){}
+    window.removeEventListener('keydown',kd,true);ov.remove();state='play'};
+  const kd=ev=>{const i=['Digit1','Digit2','Digit3'].indexOf(ev.code);if(i>=0&&pick[i]){ev.stopPropagation();ev.preventDefault();done(pick[i])}};
+  window.addEventListener('keydown',kd,true);
+  pick.forEach((k,i)=>{
+    const b=document.createElement('button');
+    b.style.cssText='width:clamp(120px,26vw,190px);min-height:clamp(110px,30vh,170px);border-radius:14px;border:2px solid '+k.c+';background:linear-gradient(160deg,rgba(40,30,80,.95),rgba(14,10,36,.95));color:#fff;padding:10px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 0 18px '+k.c+'55;font-family:inherit';
+    const have=pkN(k.id);
+    b.innerHTML='<div style="font-size:clamp(26px,7vw,40px)">'+k.ic+'</div><div style="font-weight:900;font-size:clamp(14px,3.4vw,18px);color:'+k.c+'">'+k.n+(have?' <span style="font-size:11px;color:#ccc">Lv'+have+'→'+(have+1)+'</span>':'')+'</div><div style="font-size:clamp(11px,2.8vw,13px);line-height:1.4;color:#ddd">'+k.d+'</div><div style="font-size:10px;color:#889">'+(i+1)+'キー</div>';
+    b.onclick=()=>done(k);row.appendChild(b)});
+  document.body.appendChild(ov);
+}
+
+// v51: ジャス回避後無敵 / 難易度ギミック
+const _jd51=justDodge;justDodge=function(p){const t0=p.jdT;_jd51(p);try{if(p.jdT!==t0){p.inv=Math.max(p.inv||0,1.0);p.jdInv=1.0;txt(p.x,p.y-132,'無敵 1秒','#bff4ff')}}catch(_){}};
+function diffIdx(){if(!G||!G.cfg)return 0;if(G.cfg.mode==='quest')return G.cfg.d|0;const c=G.cfg.ch||'';if(c.indexOf('bb_')===0)return +c.slice(-1)||0;if(c.indexOf('enki')===0)return +c.slice(4)||0;return 0}
+const _up51=update;update=function(dt){
+  _up51(dt);
+  try{
+    if(!G||G.over||G.phase!=='fight')return;
+    const d=diffIdx();
+    if(G.pj>0){G.pj-=dt;if(G.pj<=0){G.pj=0}}
+    // 無敵オーラ
+    for(const p of G.P)if(p.jdInv>0){p.jdInv-=dt;if(!sprLow&&Math.random()<.35)pt({x:p.x+ri(-14,14),y:p.y-ri(6,44),vx:0,vy:-30,life:.35,col:'#bff4ff',sz:2.2,k:'sq',fr:.9})}
+    if(d<1)return;
+    const g=G.g51=G.g51||{rage:0,next:d===1?22:14,poison:7};
+    // 怒り：一定間隔で全敵が加速
+    g.next-=dt;
+    if(g.rage<=0&&g.next<=0){g.rage=7;g.next=d===1?26:18;G.msg='オニの怒り！';G.msgT=1.6;try{tint('#400010',.25,1.2);snd('boom')}catch(_){}}
+    if(g.rage>0){g.rage-=dt;for(const e of G.E){if(e.type==='boss')continue;if(e._sp51===undefined){e._sp51=e.spd;e.spd=e.spd*(d===1?1.25:1.4)}}
+      if(g.rage<=0)for(const e of G.E)if(e._sp51!==undefined){e.spd=e._sp51;e._sp51=undefined}}
+    else for(const e of G.E)if(e._sp51!==undefined){e.spd=e._sp51;e._sp51=undefined}
+    // 毒霧（極のみ）：プレイヤーの足もとに時間差で毒の円
+    if(d>=2){g.poison-=dt;if(g.poison<=0){g.poison=10;const ps=G.P.filter(p=>!p.down);for(const p of ps)for(let k=0;k<2;k++)tlAdd({x:p.x+(k?ri(-110,110):0),y:p.y+(k?ri(-110,110):0),r:64,dur:1.5+k*.4,dmg:12+(G.wave||1)*3,col:'#9a40ff'})}}
+  }catch(_){}
+};
+const _ng51=newGame;newGame=function(w0,cfg){_ng51(w0,cfg);try{G.g51=null}catch(_){}};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
@@ -5772,13 +5901,13 @@ function draw(){
   g.setTransform(dpr,0,0,dpr,0,0);
   g.fillStyle='#0d0b1a';g.fillRect(0,0,cw,ch);
   if(!G||state==='title'){return}
-  const S=scale(),Z=1+(G.zm||0)*.07;
+  const S=scale(),Z=1+(G.zm||0)*.07+(G.zk||0)*.035;
   const sh=G.shake>0?G.shake*10:0;
   g.save();
   if(Z>1){g.translate(cw/2,ch/2);g.scale(Z,Z);g.translate(-cw/2,-ch/2)}
   g.scale(S,S);g.translate(-cam.x+(sh?ri(-sh,sh):0),-cam.y+(sh?ri(-sh,sh):0));
   if(!bgc)makeBG();
-  g.drawImage(bgc,0,0);
+  bgDraw(S,Z);
   for(const f of G.FX)if(f.under&&f.draw)f.draw(f);drawTL();drawAmbient();
   for(const o of G.D){g.fillStyle='rgba(125,255,160,.35)';g.beginPath();g.arc(o.x,o.y,18+Math.sin(G.t*6)*2,0,TAU);g.fill();g.fillStyle='#7dffa0';g.beginPath();g.arc(o.x,o.y,9,0,TAU);g.fill();g.fillStyle='#fff';g.fillRect(o.x-1.5,o.y-5,3,10);g.fillRect(o.x-5,o.y-1.5,10,3)}
   const list=[];for(const p of G.P)list.push([p.y,0,p]);for(const e of G.E)list.push([e.y,1,e]);for(const e of G.DE)list.push([e.y,1,e]);
@@ -5887,6 +6016,25 @@ const STAGES=[
   post0:[['ナレーション','――けれど、オニ王の影はまだ、消えていなかった。'],['ナレーション','より強くなったオニたちが待つ「超」クエストが解放された！']],
   post1:[['ナレーション','オニたちの力は、さらに増していく――。'],['ナレーション','最強の「極」クエストが解放された！']]}
 ];
+/*v51*/STAGES.push(
+ {name:'外伝 氷結の回廊',sub:'凍てつく回廊、氷のオオオニが待つ',m0:2.0,par:420,bp:60,boss:'氷結のオオオニ',bk:'ice',
+  waves:[{c:10,t:4},{t:8,z:2},{c:8,z:3,t:4},{c:6,t:6,z:3,boss:1}],
+  pre:[['ナレーション','王を倒したあとも、各地に「かけらの残り香」が凍りついていた。'],['ユキネ','寒いの、あたしは平気。…でも、気をつけて。足もとがすべるよ。']],
+  post:[['ナギサ','氷が溶けていく…！ 次はどこだろう？']]},
+ {name:'外伝 雷鳴の闘技場',sub:'雷がふりそそぐ、円形の闘技場',m0:2.2,par:440,bp:60,boss:'雷鳴のオオオニ',bk:'thunder',
+  waves:[{c:12,t:6},{z:4,t:6},{c:8,t:6,z:4},{c:8,t:6,z:4,boss:1}],
+  pre:[['ライカ','雷の気配…。ここは私の出番だ。'],['ベニ','雷くらい、ぶん殴ってやる！']],
+  post:[['ライカ','…ふん。落雷よりも速く動けた。']]},
+ {name:'外伝 業火の火山',sub:'煮えたぎる火山、炎のオオオニ',m0:2.4,par:480,bp:65,boss:'業火のオオオニ',bk:'fire',
+  waves:[{c:12,t:6,z:2},{z:5,t:6},{c:10,t:8,z:4},{c:8,t:6,z:5,boss:1}],
+  pre:[['ベニ','あっちぃ！ でも燃えてきたぜ！'],['ナギサ','みんな、むりしないでね！']],
+  post:[['ベニ','へへっ、燃えつきたのは向こうのほうだな！']]},
+ {name:'外伝 影の月兎',sub:'月兎のかげ、最後の試練',m0:2.7,par:600,bp:70,boss:'影の月兎',bk:'shadow',
+  waves:[{c:12,t:8,z:3},{z:5,t:8},{c:12,t:8,z:5},{c:10,t:10,z:4},{c:8,t:8,z:5,boss:1}],
+  pre:[['ナレーション','月のかげから、もうひとつの「月兎」が現れた。'],['ユキネ','…最後の試練みたいだね。'],['ナギサ','みんなで、乗りこえよう！']],
+  post:[['ナレーション','影は静かに月へ溶けていった。――おしまい。でも、夜はまたやってくる。']]}
+);
+
 const CHALS=[
  {id:'rush',name:'ボスラッシュ',desc:'ボス3連戦！ だんだん強くなる。クリアタイムをきそおう',N:3},
  {id:'iron',name:'鉄壁の6ウェーブ',desc:'かいふくが一切つかえない！ 6ウェーブを生きのびろ',N:6},
@@ -5898,7 +6046,7 @@ function saveProg(){try{localStorage.setItem('oni_prog',JSON.stringify(prog))}ca
 const qk=(d,s)=>d+'-'+s;
 const cleared=(d,s)=>!!prog.c[qk(d,s)];
 const starsOf=(d,s)=>Math.max(0,(prog.c[qk(d,s)]||1)-1);
-const diffOpen=d=>d===0||cleared(d-1,STAGES.length-1);
+const diffOpen=d=>d===0||cleared(d-1,5);
 const stageOpen=(d,s)=>diffOpen(d)&&(s===0||cleared(d,s-1));
 let selD=0,lastCfg=null,dlg=null;
 
@@ -5974,7 +6122,7 @@ function startWaveQ(){
     const st=G.stg,df=G.dif,cf=st.waves[w-1];
     G.m=st.m0*df.hp;G.dm=(1+(st.m0-1)*.5)*df.dm;G.spdm=df.spd;
     list=mixList(cf,df.cnt);if(list.length>26)list.length=26;
-    if(cf.boss){list.unshift('boss');G.bossCfg={nm:st.boss,fin:cf.fin,bk:['oni','giant','thunder','fire','ice','fin'][G.cfg.s]}}
+    if(cf.boss){list.unshift('boss');G.bossCfg={nm:st.boss,fin:cf.fin,bk:st.bk||['oni','giant','thunder','fire','ice','fin'][G.cfg.s]}}
     G.msg=cf.boss?(cf.fin?'FINAL BOSS':'BOSS WAVE'):'WAVE '+w+' / '+G.N;
   }else{
     const m=G.cfg.ch;G.spdm=1;
@@ -6003,8 +6151,8 @@ function finishRun(win){
     const wasFirst=!cleared(d,s),old=prog.c[qk(d,s)]||0;
     prog.c[qk(d,s)]=Math.max(old,1+n);saveProg();
     let post=st.post;
-    if(s===STAGES.length-1&&wasFirst){if(d===0)post=post.concat(st.post0);else if(d===1)post=post.concat(st.post1)}
-    else if(s===STAGES.length-1)post=st.post;
+    if(s===5&&wasFirst){if(d===0)post=post.concat(st.post0);else if(d===1)post=post.concat(st.post1)}
+    else if(s===5)post=st.post;
     R_.next=(s<STAGES.length-1)?{d,s:s+1}:null;
     showStory(wasFirst||true?post:null,()=>showResult());
     return;
