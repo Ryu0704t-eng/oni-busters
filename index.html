@@ -260,7 +260,7 @@ const MAPS=[
   {id:'moon',n:'月夜の広場'},{id:'town',n:'住宅街'},{id:'mall',n:'ショッピングモール'},
   {id:'shrine',n:'神社のお祭り'},{id:'school',n:'夜の学校'},{id:'beach',n:'海辺の街'}
 ];
-const STAGE_MAP=[1,3,2,4,5,0,5,3,4,2];           // クエスト各ステージの舞台
+const STAGE_MAP=[1,3,2,4,5,0,6,9,7,8,6,8];           // クエスト各ステージの舞台
 const CH_MAP={rush:0,iron:2,time:5};
 let mapSel=-1;try{const v=localStorage.getItem('oni_map');if(v!==null)mapSel=+v}catch(e){}
 function pickMap(cfg){
@@ -3475,7 +3475,7 @@ function gmMake(k){const o={k,t:0};
   else if(k==='wind'){o.cd=6;o.on=0;o.a=0}
   else if(k==='barrel'){o.z=gmRnd(5,0).map(q=>({x:q.x,y:q.y,r:22,cd:0,on:1}))}
   return o}
-const _ng38=newGame;newGame=function(w0,cfg){_ng38(w0,cfg);try{const k=GM_BY_MAP[(G.mapI||0)%6];G.gm=[gmMake(k)];
+const _ng38=newGame;newGame=function(w0,cfg){_ng38(w0,cfg);try{const k=GM_BY_MAP[(G.mapI||0)%GM_BY_MAP.length];G.gm=[gmMake(k)];
   const hard=(G.cfg&&G.cfg.d>0)||(G.wave>=3);if(hard&&Math.random()<.6){const ks=Object.keys(GMN).filter(x=>x!==k&&x!=='spring');G.gm.push(gmMake(ks[Math.floor(Math.random()*ks.length)]))}
   G.gmMsg=G.gm.map(o=>GMN[o.k]).join('・');setTimeout(()=>{if(G&&G.gm){G.msg='ギミック：'+G.gmMsg;G.msgT=3}},2500)}catch(e){G.gm=[]}};
 function gmAlive(){return G.P.filter(p=>!p.down)}
@@ -4056,6 +4056,71 @@ const _ss52=shadeSrc;shadeSrc=function(k,m,S,gh,fl){return _mk(_ss52(k,m,S,gh,fl
 const _si52=shadeIm;shadeIm=function(im){return _mk(_si52(im))};
 const _ol52=outlOf;outlOf=function(im,col){const o=_ol52(im,col);try{if(o&&o.c)_mk(o.c)}catch(_){}return o};
 
+/* ===== v53 新ステージ（マップ）4種 ===== */
+MAPS.push({id:'snow',n:'雪原の村'},{id:'volcano',n:'火山のふもと'},{id:'cave',n:'水晶の洞窟'},{id:'park',n:'夜の遊園地'});
+MD.snow=function(x){
+  const r=mrng(31);
+  const gr=x.createLinearGradient(0,0,0,WH);gr.addColorStop(0,'#c8dcf2');gr.addColorStop(1,'#98b4d6');x.fillStyle=gr;x.fillRect(0,0,WW,WH);
+  // 雪だまり
+  for(let i=0;i<120;i++){const X=r()*WW,Y=r()*WH,w=60+r()*140;x.fillStyle='rgba(255,255,255,.55)';x.beginPath();x.ellipse(X,Y,w,w*.32,0,0,TAU);x.fill();x.fillStyle='rgba(120,150,190,.18)';x.beginPath();x.ellipse(X+8,Y+10,w*.9,w*.24,0,0,TAU);x.fill()}
+  // こおった池
+  for(const [X,Y,w,h] of [[620,700,260,150],[1700,520,220,130],[1500,1700,300,170],[500,1750,200,120]]){
+    x.fillStyle='rgba(30,60,100,.25)';x.beginPath();x.ellipse(X+10,Y+12,w,h,0,0,TAU);x.fill();
+    const g2=x.createRadialGradient(X-w*.3,Y-h*.3,10,X,Y,w);g2.addColorStop(0,'#e8f8ff');g2.addColorStop(1,'#8cc4ec');x.fillStyle=g2;x.beginPath();x.ellipse(X,Y,w,h,0,0,TAU);x.fill();
+    x.strokeStyle='rgba(255,255,255,.7)';x.lineWidth=2;for(let k=0;k<6;k++){x.beginPath();let a=r()*TAU,px=X+Math.cos(a)*w*.2,py=Y+Math.sin(a)*h*.2;x.moveTo(px,py);for(let s=0;s<4;s++){px+=(r()-.5)*w*.5;py+=(r()-.5)*h*.5;x.lineTo(px,py)}x.stroke()}}
+  // 家
+  for(const [X,Y] of [[1100,400],[300,1200],[1900,1300],[1100,1250],[2000,1950]]){
+    x.fillStyle='rgba(0,0,0,.28)';x.fillRect(X+12,Y+12,150,110);x.fillStyle='#8a5a3a';x.fillRect(X,Y+30,150,90);
+    x.fillStyle='#f4f8ff';x.beginPath();x.moveTo(X-14,Y+34);x.lineTo(X+75,Y-26);x.lineTo(X+164,Y+34);x.closePath();x.fill();x.fillStyle='#ffd878';x.fillRect(X+22,Y+58,28,28);x.fillRect(X+100,Y+58,28,28)}
+  // もみの木
+  for(let i=0;i<70;i++){const X=r()*WW,Y=r()*WH;if(Math.hypot(X-WW/2,Y-WH/2)<260)continue;const s=34+r()*34;
+    x.fillStyle='rgba(0,0,0,.25)';x.beginPath();x.ellipse(X+s*.3,Y+s*.9,s*.8,s*.3,0,0,TAU);x.fill();
+    for(let k=0;k<3;k++){x.fillStyle=k%2?'#2f6a4c':'#27593f';x.beginPath();x.moveTo(X,Y-s*1.2+k*s*.45);x.lineTo(X+s*(.55+k*.18),Y-s*.2+k*s*.45);x.lineTo(X-s*(.55+k*.18),Y-s*.2+k*s*.45);x.closePath();x.fill();x.fillStyle='rgba(255,255,255,.85)';x.beginPath();x.moveTo(X,Y-s*1.2+k*s*.45);x.lineTo(X+s*.26,Y-s*.78+k*s*.45);x.lineTo(X-s*.26,Y-s*.78+k*s*.45);x.closePath();x.fill()}}
+  mVig(x,'rgba(110,150,255,.10)');
+};
+MD.volcano=function(x){
+  const r=mrng(47);
+  const gr=x.createRadialGradient(WW/2,WH/2,100,WW/2,WH/2,1300);gr.addColorStop(0,'#4a2218');gr.addColorStop(1,'#1a0a0a');x.fillStyle=gr;x.fillRect(0,0,WW,WH);
+  for(let i=0;i<220;i++){const X=r()*WW,Y=r()*WH,s=10+r()*30;x.fillStyle=r()<.5?'#2c1612':'#38201a';x.beginPath();x.ellipse(X,Y,s*1.4,s,r()*3,0,TAU);x.fill()}
+  // 溶岩の川
+  const rivers=[[[0,500],[600,420],[1100,900],[1700,820],[2400,1300]],[[300,2400],[700,1800],[1300,1500],[1800,2000],[2400,2200]],[[1200,0],[1000,500],[1400,800]]];
+  for(const pts of rivers){for(const [w,c] of [[70,'rgba(255,90,20,.25)'],[46,'#c43a10'],[26,'#ff7a1e'],[10,'#ffd060']]){x.strokeStyle=c;x.lineWidth=w;x.lineCap='round';x.lineJoin='round';x.beginPath();x.moveTo(pts[0][0],pts[0][1]);for(let k=1;k<pts.length;k++){const p0=pts[k-1],p1=pts[k];x.quadraticCurveTo((p0[0]+p1[0])/2,p0[1]+(p1[1]-p0[1])*.9,p1[0],p1[1])}x.stroke()}}
+  // 岩
+  for(let i=0;i<60;i++){const X=r()*WW,Y=r()*WH,s=24+r()*40;x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(X+s*.3,Y+s*.5,s,s*.4,0,0,TAU);x.fill();x.fillStyle='#4a3a38';x.beginPath();for(let k=0;k<7;k++){const a=k/7*TAU,rr=s*(.7+r()*.4);x.lineTo(X+Math.cos(a)*rr,Y+Math.sin(a)*rr*.8)}x.closePath();x.fill();x.fillStyle='#6a5450';x.beginPath();x.arc(X-s*.2,Y-s*.2,s*.4,0,TAU);x.fill()}
+  // 火の粉
+  for(let i=0;i<260;i++){x.fillStyle='rgba(255,'+Math.floor(120+r()*100)+',40,'+(.3+r()*.5)+')';x.fillRect(r()*WW,r()*WH,2+r()*2,2+r()*2)}
+  mVig(x,'rgba(255,70,20,.08)');
+};
+MD.cave=function(x){
+  const r=mrng(59);
+  const gr=x.createRadialGradient(WW/2,WH/2,100,WW/2,WH/2,1300);gr.addColorStop(0,'#2a2850');gr.addColorStop(1,'#0c0a1c');x.fillStyle=gr;x.fillRect(0,0,WW,WH);
+  for(let i=0;i<300;i++){const X=r()*WW,Y=r()*WH,s=6+r()*18;x.fillStyle='rgba(20,18,50,.5)';x.beginPath();x.ellipse(X,Y,s*2,s,r()*3,0,TAU);x.fill()}
+  // 地底湖
+  for(const [X,Y,w,h] of [[700,800,300,170],[1700,1500,340,190],[600,1800,220,120]]){const g2=x.createRadialGradient(X,Y,10,X,Y,w);g2.addColorStop(0,'#3a8ad0');g2.addColorStop(1,'#14305a');x.fillStyle=g2;x.beginPath();x.ellipse(X,Y,w,h,0,0,TAU);x.fill();x.strokeStyle='rgba(180,230,255,.4)';x.lineWidth=2;for(let k=0;k<4;k++){x.beginPath();x.ellipse(X,Y,w*(.3+k*.18),h*(.3+k*.18),0,0,TAU);x.stroke()}}
+  // 水晶
+  const cols=['#7ae8ff','#c58aff','#ff8ad8','#8affc0'];
+  for(let i=0;i<90;i++){const X=r()*WW,Y=r()*WH;if(Math.hypot(X-WW/2,Y-WH/2)<220)continue;const c=cols[i%4],n=2+Math.floor(r()*3);
+    const gl=x.createRadialGradient(X,Y,2,X,Y,70);gl.addColorStop(0,c+'66');gl.addColorStop(1,c+'00');x.fillStyle=gl;x.fillRect(X-70,Y-70,140,140);
+    for(let k=0;k<n;k++){const h=30+r()*50,w=9+r()*10,ox=(k-n/2)*14,a=(r()-.5)*.5;x.save();x.translate(X+ox,Y);x.rotate(a);x.fillStyle='rgba(0,0,0,.3)';x.beginPath();x.moveTo(-w,0);x.lineTo(0,-h);x.lineTo(w,0);x.closePath();x.translate(6,6);x.fill();x.translate(-6,-6);x.fillStyle=c;x.beginPath();x.moveTo(-w,0);x.lineTo(-w*.4,-h*.8);x.lineTo(0,-h);x.lineTo(w*.4,-h*.8);x.lineTo(w,0);x.closePath();x.fill();x.fillStyle='rgba(255,255,255,.5)';x.beginPath();x.moveTo(-w*.5,0);x.lineTo(-w*.2,-h*.8);x.lineTo(0,-h);x.lineTo(-w*.05,-h*.3);x.closePath();x.fill();x.restore()}}
+  mVig(x,'rgba(120,80,255,.10)');
+};
+MD.park=function(x){
+  const r=mrng(71);
+  x.fillStyle='#3a3562';x.fillRect(0,0,WW,WH);
+  for(let i=0;i<WW;i+=120)for(let j=0;j<WH;j+=120){x.fillStyle=((i+j)/120)%2?'#403a6c':'#35305a';x.fillRect(i,j,120,120)}
+  // 遊歩道
+  x.fillStyle='#5a4a78';x.fillRect(0,WH/2-90,WW,180);x.fillRect(WW/2-90,0,180,WH);
+  x.strokeStyle='#ffe08a';x.lineWidth=4;x.setLineDash([30,24]);x.beginPath();x.moveTo(0,WH/2);x.lineTo(WW,WH/2);x.moveTo(WW/2,0);x.lineTo(WW/2,WH);x.stroke();x.setLineDash([]);
+  // メリーゴーランド・観覧車の土台・テント
+  const rings=['#ff6a8a','#ffe45c','#6ac8ff','#9aff9a'];
+  for(const [X,Y,R] of [[520,520,170],[1880,520,150],[520,1880,150],[1880,1880,170]]){x.fillStyle='rgba(0,0,0,.3)';x.beginPath();x.ellipse(X+14,Y+16,R,R*.9,0,0,TAU);x.fill();for(let k=0;k<4;k++){x.fillStyle=rings[(k+Math.floor(r()*4))%4];x.beginPath();x.arc(X,Y,R*(1-k*.22),0,TAU);x.fill()}x.fillStyle='#fff';x.beginPath();x.arc(X,Y,R*.1,0,TAU);x.fill();for(let k=0;k<8;k++){const a=k/8*TAU;x.fillStyle='#ffe8a0';x.beginPath();x.arc(X+Math.cos(a)*R*.62,Y+Math.sin(a)*R*.62,7,0,TAU);x.fill()}}
+  for(let i=0;i<40;i++){const X=r()*WW,Y=r()*WH;if(Math.abs(X-WW/2)<130||Math.abs(Y-WH/2)<130)continue;const c=rings[i%4];x.fillStyle='rgba(0,0,0,.3)';x.beginPath();x.ellipse(X+6,Y+22,18,7,0,0,TAU);x.fill();x.strokeStyle='#ccc';x.lineWidth=1.5;x.beginPath();x.moveTo(X,Y+14);x.lineTo(X,Y+36);x.stroke();x.fillStyle=c;x.beginPath();x.ellipse(X,Y,15,19,0,0,TAU);x.fill();x.fillStyle='rgba(255,255,255,.5)';x.beginPath();x.ellipse(X-5,Y-6,4,6,0,0,TAU);x.fill()}
+  // ちょうちん
+  for(let i=0;i<120;i++){const X=r()*WW,Y=r()*WH;const gl=x.createRadialGradient(X,Y,1,X,Y,22);gl.addColorStop(0,'rgba(255,220,120,.7)');gl.addColorStop(1,'rgba(255,220,120,0)');x.fillStyle=gl;x.fillRect(X-22,Y-22,44,44)}
+  mVig(x,'rgba(255,120,200,.06)');
+};
+
+GM_BY_MAP.push('conveyor','meteor','portal','bumper');
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
@@ -6073,6 +6138,15 @@ const STAGES=[
   waves:[{c:12,t:8,z:3},{z:5,t:8},{c:12,t:8,z:5},{c:10,t:10,z:4},{c:8,t:8,z:5,boss:1}],
   pre:[['ナレーション','月のかげから、もうひとつの「月兎」が現れた。'],['ユキネ','…最後の試練みたいだね。'],['ナギサ','みんなで、乗りこえよう！']],
   post:[['ナレーション','影は静かに月へ溶けていった。――おしまい。でも、夜はまたやってくる。']]}
+,
+ {name:'外伝 凍える月見台',sub:'雪にうもれた村で、月がふるえている',m0:2.9,par:560,bp:70,boss:'吹雪のオオオニ',bk:'oni',
+  waves:[{c:12,t:8,z:3},{t:10,z:4},{c:12,z:5,t:6},{c:10,t:8,z:5},{c:8,t:8,z:5,boss:1}],
+  pre:[['ナレーション','雪におおわれた小さな村。月見台の月が、こおりついてふるえている。'],['ナギサ','寒いけど…みんなといっしょなら平気だよ！'],['ユキネ','雪はあたしの庭だ。まかせな。']],
+  post:[['ナギサ','月が…あたたかくなってきた。'],['ベニ','よし！ 次の洞窟だ！']]},
+ {name:'外伝 水晶の洞窟',sub:'きらめく洞窟の奥、山のオオオニ',m0:3.1,par:620,bp:75,boss:'水晶のオオオニ',bk:'giant',
+  waves:[{c:14,t:8,z:4},{z:6,t:8},{c:12,t:10,z:5},{c:12,t:10,z:6},{c:10,t:8,z:6,boss:1}],
+  pre:[['ナレーション','地の底、水晶がきらめく洞窟。ここにも月のかけらの光が届いていた。'],['ライカ','足もとに気をつけろ。反射でオニの位置が見えにくい。']],
+  post:[['ナギサ','きれい…。でも、もうおしまいだね。'],['ユキネ','またいつでも来よう。あたしたちの月は、ここにある。']]}
 );
 
 const CHALS=[
