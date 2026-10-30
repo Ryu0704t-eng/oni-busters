@@ -4121,6 +4121,49 @@ MD.park=function(x){
 };
 
 GM_BY_MAP.push('conveyor','meteor','portal','bumper');
+// v54: 残像を間引く / 追加キャラをガチャで出やすく＆全身表示
+const _gf54=ghostFX;
+ghostFX=function(p,col,dur){
+  try{
+    if(sprLow||!G)return;
+    const gh=G._gh=(G._gh||[]).filter(o=>o.e>G.t);
+    const cap=G.P.length>2?3:4;
+    if(gh.length>=cap)return;
+    if(G.t-(p._gt54||-9)<.085)return;
+    p._gt54=G.t;gh.push({e:G.t+dur*.7});
+    return _gf54(p,col,dur*.7);
+  }catch(_){}
+};
+const _ge54=ghostE;
+ghostE=function(){
+  try{
+    if(sprLow||!G||!G.E||G.E.length<1)return;let n=0;for(const f of G.FX)if(!f.under)n++;if(n<14)return;
+    g.save();const vx0=cam.x-60,vx1=cam.x+cw+60;let c=0;
+    for(const e of G.E){if(e.x<vx0||e.x>vx1)continue;if(++c>6)break;g.globalAlpha=e.type==='boss'?.55:.7;try{drawEnemy(e)}catch(_){}}
+    g.restore();g.globalAlpha=1;
+  }catch(_){}
+};
+// 追加キャラ(自作・取り込み)は、どのレアリティの抽選にも混ざる
+const _pc54=pickChar;
+pickChar=function(all){
+  try{
+    const cu=all.filter(c=>!c.builtin&&!c.bundled);
+    if(cu.length&&Math.random()<Math.min(.5,.12*cu.length))return cu[Math.floor(Math.random()*cu.length)];
+  }catch(_){}
+  return _pc54(all);
+};
+// ガチャ結果カードは元の全身絵をそのまま見せる
+const _cc54=chCard;
+chCard=function(r,i){
+  const c=_cc54(r,i);
+  try{
+    const rc=r.ch,im=imgOf(rc);
+    const cv=c.querySelector('canvas');
+    if(cv&&im&&im.src){const t=document.createElement('img');t.src=im.src;t.style.cssText='height:78px;max-width:100%;object-fit:contain;filter:drop-shadow(0 0 6px '+(rc.col||'#fff')+')';cv.replaceWith(t)}
+  }catch(_){}
+  return c;
+};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
