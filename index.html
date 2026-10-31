@@ -948,7 +948,7 @@ function buildEditor(){
   const wu=f('ひっさつ',us);ud.style.display='none';wu.appendChild(skCard(us,true));wu.appendChild(ud);wu.appendChild(skRename(rc,2));
   const rb=E_('button','','🎲 わざをランダムにきめる');rb.className='mid';rb.onclick=()=>{const av=Object.values(SKILLS).filter(x=>isUnl(x)),au=Object.values(ULTS).filter(x=>isUnl(x));const a1=av[Math.floor(Math.random()*av.length)];let a2=a1;for(let q=0;q<20&&a2===a1;q++)a2=av[Math.floor(Math.random()*av.length)];rc.sk=[a1.id,a2.id];rc.ult=au[Math.floor(Math.random()*au.length)].id;buildEditor()};box.appendChild(rb);
   const rn=E_('button','','🎲 なまえをランダムにきめる');rn.className='mid';rn.onclick=()=>{const A=['ア','カ','サ','ナ','ハ','マ','ヤ','ラ','ヒ','ミ','ユ','シ','ト','ル','ソ','ホ','レ','セ'],B=['ヅキ','ハネ','ネ','ミ','カゼ','ヒメ','コ','ナギ','ユキ','ラン','ヨイ','ホシ'];rc.name=A[Math.floor(Math.random()*A.length)]+B[Math.floor(Math.random()*B.length)];buildEditor()};box.appendChild(rn);
-  const sv_=E_('button','','保存する');sv_.className='big';sv_.style.fontSize='18px';sv_.onclick=saveEditor;box.appendChild(sv_);
+  pubRow(box,custom,rc);const sv_=E_('button','','保存する');sv_.className='big';sv_.style.fontSize='18px';sv_.onclick=saveEditor;box.appendChild(sv_);
   if(custom&&!ed.isNew){const dl=E_('button','','このキャラを削除');dl.className='mid';dl.onclick=()=>{if(confirm('「'+rc.name+'」を削除しますか？')){CUSTOM=CUSTOM.filter(c=>c.id!==rc.id);PARTY=PARTY.map((p,i)=>p===rc.id?'b'+i:p);sv('oni_roster',CUSTOM);sv('oni_party',PARTY);applyParty();closeEditor()}};box.appendChild(dl)}
 }
 function saveEditor(){
@@ -4163,6 +4163,93 @@ chCard=function(r,i){
   }catch(_){}
   return c;
 };
+
+/* ===== v55: みんなのキャラ（Firebase Realtime Database REST・自由投稿） ===== */
+const FB_CFG={url:'https://bastar-99ff4-default-rtdb.firebaseio.com'};   // Firebase Realtime Database
+const FB_ON=()=>!!FB_CFG.url;
+const FB_BASE=()=>FB_CFG.url.replace(/\/+$/,'');
+let SHARED=[];
+const PUBMAP=(()=>{try{return JSON.parse(localStorage.getItem('oni_pubmap')||'{}')}catch(_){return{}}})();
+function pubSave(){try{localStorage.setItem('oni_pubmap',JSON.stringify(PUBMAP))}catch(_){}}
+function toast55(t){try{const d=document.createElement('div');d.textContent=t;d.style.cssText='position:fixed;left:50%;bottom:18%;transform:translateX(-50%);z-index:99;background:rgba(20,16,50,.95);color:#fff;border:1px solid #ffe27a;border-radius:20px;padding:10px 18px;font-size:14px;font-weight:700;max-width:86vw;text-align:center';document.body.appendChild(d);setTimeout(()=>d.remove(),3200)}catch(_){}}
+/* --- IndexedDB（画像キャッシュ。容量が大きいのでlocalStorageは使わない） --- */
+const IDBK={db:null,open(){return new Promise(res=>{try{const r=indexedDB.open('oni_shared',1);r.onupgradeneeded=()=>r.result.createObjectStore('c');r.onsuccess=()=>{IDBK.db=r.result;res(1)};r.onerror=()=>res(0)}catch(_){res(0)}})},
+  all(){return new Promise(res=>{if(!IDBK.db)return res({});try{const o={},q=IDBK.db.transaction('c').objectStore('c').openCursor();q.onsuccess=()=>{const c=q.result;if(c){o[c.key]=c.value;c.continue()}else res(o)};q.onerror=()=>res(o)}catch(_){res({})}})},
+  put(k,v){try{if(IDBK.db)IDBK.db.transaction('c','readwrite').objectStore('c').put(v,k)}catch(_){}}};
+/* --- 他人が投稿した値は信用しない：すべて検査して作り直す --- */
+function cleanShared(id,d){
+  try{
+    const name=String(d.name||'').replace(/[<>&"'`\\]/g,'').trim().slice(0,12);if(!name)return null;
+    const col=/^#[0-9a-f]{6}$/i.test(d.col)?d.col:'#c9a0ff';
+    const arch=Math.max(0,Math.min((typeof ARCH!=='undefined'?ARCH.length:6)-1,d.arch|0));
+    const img=String(d.img||'');if(!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(img)||img.length>900000)return null;
+    let fc=d.fc;if(!fc||typeof fc!=='object')fc={cx:.5,cy:.2,s:.4};fc={cx:Math.max(0,Math.min(1,+fc.cx||.5)),cy:Math.max(0,Math.min(1,+fc.cy||.2)),s:Math.max(.05,Math.min(1,+fc.s||.4))};
+    const dflt=Object.keys(SKILLS);let sk=Array.isArray(d.sk)?d.sk.slice(0,2).map(String):[];
+    while(sk.length<2)sk.push(dflt[sk.length]);sk=sk.map((x,i)=>SKILLS[x]?x:dflt[i]);
+    const ult=ULTS[d.ult]?d.ult:Object.keys(ULTS)[0];
+    return{id:'s_'+id,docId:id,name,arch,col,fc,sk,ult,full:!!d.full,img,shared:true,bundled:true,builtin:false};
+  }catch(_){return null}
+}
+const _ac55=allChars;
+allChars=function(){
+  const a=_ac55();if(!SHARED.length)return a;
+  const lo=id=>LOADOUT[id]||{},mine=new Set(Object.values(PUBMAP));
+  return a.concat(SHARED.filter(c=>!mine.has(c.docId)).map(c=>Object.assign({},c,{fc:lo(c.id).fc||c.fc,sk:lo(c.id).sk||c.sk,ult:lo(c.id).ult||c.ult,skn:lo(c.id).skn,sig:c.sk.concat([c.ult])})));
+};
+let _fbLoading=false;
+async function fbLoad(){
+  if(!FB_ON()||_fbLoading)return;_fbLoading=true;
+  try{
+    await IDBK.open();const cache=await IDBK.all();
+    for(const id in cache){if(SHARED.some(x=>x.docId===id))continue;const c=cleanShared(id,cache[id]);if(c)SHARED.push(c)}
+    const r=await fetch(FB_BASE()+'/chars.json?orderBy=%22t%22&limitToLast=60');
+    if(!r.ok)throw new Error('list '+r.status);
+    const j=await r.json()||{};let got=0;
+    const ids=Object.keys(j).sort((x,y)=>((j[y]&&j[y].t)||0)-((j[x]&&j[x].t)||0));
+    for(const id of ids){
+      if(!/^[A-Za-z0-9_-]{4,40}$/.test(id))continue;
+      if(SHARED.some(c=>c.docId===id))continue;if(got>=24)break;
+      const m=j[id]||{},meta={name:m.name,col:m.col,arch:m.arch,fc:m.fc,sk:m.sk,ult:m.ult,full:m.full};
+      const r2=await fetch(FB_BASE()+'/imgs/'+id+'.json');
+      if(!r2.ok)continue;meta.img=await r2.json();
+      const c=cleanShared(id,meta);if(!c)continue;SHARED.push(c);got++;IDBK.put(id,meta);
+    }
+    if(got)toast55('みんなのキャラが'+got+'人ふえたよ！ガチャに出るよ');
+  }catch(e){}
+  _fbLoading=false;
+}
+async function fbPublish(item){
+  if(!FB_ON())return false;
+  try{
+    if(PUBMAP[item.id]){toast55('このキャラはもう公開ずみ');return true}
+    const id='c'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+    // 先に画像、あとで本体（本体が見えた時点で画像はそろっている）
+    let r=await fetch(FB_BASE()+'/imgs/'+id+'.json',{method:'PUT',body:JSON.stringify(item.img)});
+    if(!r.ok)throw new Error('img '+r.status);
+    const meta={name:String(item.name).slice(0,12),col:item.col,arch:item.arch|0,fc:item.fc||{cx:.5,cy:.2,s:.4},sk:(item.sk||[]).slice(0,2),ult:item.ult,full:!!item.full,t:Date.now()};
+    r=await fetch(FB_BASE()+'/chars/'+id+'.json',{method:'PUT',body:JSON.stringify(meta)});
+    if(!r.ok)throw new Error('meta '+r.status);
+    PUBMAP[item.id]=id;pubSave();
+    toast55('みんなに公開したよ！');return true;
+  }catch(e){toast55('公開できなかった…（通信かルールをかくにん）');return false}
+}
+function pubRow(box,custom,rc){
+  if(!custom||!FB_ON())return;
+  const w=document.createElement('div');w.style.cssText='width:100%;max-width:380px;text-align:left;font-size:12px;background:rgba(255,226,122,.08);border:1px solid rgba(255,226,122,.35);border-radius:10px;padding:8px 10px;margin:6px 0;color:#ffe9a8';
+  if(PUBMAP[rc.id]){w.textContent='✅ このキャラはみんなに公開ずみ（全員のガチャに出ます）'}
+  else{const l=document.createElement('label');l.style.cssText='display:flex;gap:8px;align-items:flex-start;cursor:pointer';const c=document.createElement('input');c.type='checkbox';c.id='pubChk';c.style.cssText='width:20px;height:20px;flex:none';
+    const t=document.createElement('span');t.innerHTML='<b>🌐 みんなに公開する</b><br><span style="color:#cfc7ee">保存すると全員のガチャに入るよ。<br>自分でつくった絵・使っていい絵だけにしてね。公開後は取り消せません。</span>';l.appendChild(c);l.appendChild(t);w.appendChild(l)}
+  box.appendChild(w);
+}
+const _se55=saveEditor;
+saveEditor=function(){
+  let want=false,id=null;
+  try{const c=document.getElementById('pubChk');want=!!(c&&c.checked);id=ed&&ed.rc&&ed.rc.id;
+    if(want&&!confirm('みんなに公開すると、全員のガチャに出て、あとから消せません。公開してOK？'))want=false}catch(_){}
+  _se55();
+  try{if(want&&id){const it=CUSTOM.find(c=>c.id===id);if(it)fbPublish(it)}}catch(_){}
+};
+setTimeout(()=>{try{fbLoad()}catch(_){}},2500);
 
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
