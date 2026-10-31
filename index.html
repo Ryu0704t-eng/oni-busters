@@ -1089,7 +1089,7 @@ function buildRoster(){
     lg.appendChild(c)}
   box.appendChild(lg);
   const rp=E_('button','margin-top:12px','🎲 ランダム編成');rp.className='mid';rp.onclick=()=>{rndParty();buildRoster()};box.appendChild(rp);
-  const add=E_('button','margin-top:4px','＋ キャラクターをついか');add.className='mid';add.onclick=()=>openEditor(null);box.appendChild(add);
+  const add=E_('button','margin-top:4px','＋ キャラクターをついか');add.className='mid';add.onclick=()=>openEditor(null);box.appendChild(add);pubAllBtn(box);
 }
 function rndParty(){
   const all=allChars().slice(),pick=[];
@@ -4250,6 +4250,18 @@ saveEditor=function(){
   try{if(want&&id){const it=CUSTOM.find(c=>c.id===id);if(it)fbPublish(it)}}catch(_){}
 };
 setTimeout(()=>{try{fbLoad()}catch(_){}},2500);
+function pubAllBtn(box){
+  try{
+    if(!FB_ON())return;const todo=CUSTOM.filter(c=>!PUBMAP[c.id]&&c.img);if(!todo.length)return;
+    const b=document.createElement('button');b.className='mid';b.style.marginTop='4px';b.textContent='🌐 作ったキャラをまとめて公開（'+todo.length+'人）';
+    b.onclick=async()=>{
+      if(!confirm('いま作ってある '+todo.length+'人 を、みんなに公開します。全員のガチャに出て、あとから消せません。OK？'))return;
+      b.disabled=true;let ok=0;for(const c of todo){if(await fbPublish(c))ok++}
+      toast55(ok+'人 公開したよ！');try{buildRoster()}catch(_){}
+    };
+    box.appendChild(b);
+  }catch(_){}
+}
 
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
