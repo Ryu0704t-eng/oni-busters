@@ -139,7 +139,7 @@ button.mid{font-size:15px;font-weight:700;padding:10px 26px;border-radius:30px;b
 const $=id=>document.getElementById(id);
 const cv=$('cv'),g=cv.getContext('2d');
 let cw=1,ch=1,dpr=1;
-function resize(){dpr=Math.min(window.devicePixelRatio||1,window.__lowdpr?1.2:(window.__hidpr?2:1.4));cw=window.innerWidth;ch=window.innerHeight;cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr)}
+function resize(){dpr=Math.min(window.devicePixelRatio||1,window.__lowdpr?1.2:(window.__hidpr?2:1.4))*(window.__dscale||1);cw=window.innerWidth;ch=window.innerHeight;cv.width=Math.round(cw*dpr);cv.height=Math.round(ch*dpr)}
 window.addEventListener('resize',resize);resize();
 const R=Math.random,TAU=Math.PI*2,clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -941,12 +941,12 @@ function buildEditor(){
   box.appendChild(E_('div','width:100%;max-width:380px;text-align:left;font-size:12px;background:rgba(255,255,255,.07);border-radius:10px;padding:8px 10px;margin:6px 0',
     '<b style="color:#ffe27a">基本こうげき</b>：'+bd.atkName+'（'+bd.atkDesc+'）<br>HP '+bd.hp+'　こうげき '+bd.atk+'　スピード '+bd.spd));
   for(let k=0;k<2;k++){const sel=E_('select',inpCss);skOptions(sel,SKILLS,rc.sk[k],rc);const ds=E_('div','font-size:11px;color:#c9c3e6;margin-top:3px');
-    const upd=()=>{rc.sk[k]=sel.value;const s=SKILLS[sel.value];ds.innerHTML=(isUnl(s)||(rc.sig&&rc.sig.indexOf(s.id)>=0)?'':'<span style="color:#ff9a9a">'+unlText(s)+'</span><br>')+s.desc};sel.onchange=upd;upd();
-    const w=f('わざ'+['①','②'][k],sel);ds.style.display='none';w.appendChild(skCard(sel,false));w.appendChild(ds);w.appendChild(skRename(rc,k))}
+    const upd=()=>{rc.sk[k]=sel.value;const s=SKILLS[sel.value];ds.innerHTML=(isUnl(s)||(rc.sig&&rc.sig.indexOf(s.id)>=0)?'':'<span style="color:#ff9a9a">'+unlText(s)+'</span><br>')+s.desc};sel.onchange=upd;upd();if(rc.locked)sel.disabled=true;
+    const w=f('わざ'+['①','②'][k],sel);ds.style.display='none';w.appendChild(skCard(sel,false));w.appendChild(ds);if(!rc.locked)w.appendChild(skRename(rc,k))}
   const us=E_('select',inpCss);skOptions(us,ULTS,rc.ult,rc);const ud=E_('div','font-size:11px;color:#c9c3e6;margin-top:3px');
-  const uu=()=>{rc.ult=us.value;const u=ULTS[us.value];ud.innerHTML=(isUnl(u)||(rc.sig&&rc.sig.indexOf(u.id)>=0)?'':'<span style="color:#ff9a9a">'+unlText(u)+'</span><br>')+u.desc};us.onchange=uu;uu();
-  const wu=f('ひっさつ',us);ud.style.display='none';wu.appendChild(skCard(us,true));wu.appendChild(ud);wu.appendChild(skRename(rc,2));
-  const rb=E_('button','','🎲 わざをランダムにきめる');rb.className='mid';rb.onclick=()=>{const av=Object.values(SKILLS).filter(x=>isUnl(x)),au=Object.values(ULTS).filter(x=>isUnl(x));const a1=av[Math.floor(Math.random()*av.length)];let a2=a1;for(let q=0;q<20&&a2===a1;q++)a2=av[Math.floor(Math.random()*av.length)];rc.sk=[a1.id,a2.id];rc.ult=au[Math.floor(Math.random()*au.length)].id;buildEditor()};box.appendChild(rb);
+  const uu=()=>{rc.ult=us.value;const u=ULTS[us.value];ud.innerHTML=(isUnl(u)||(rc.sig&&rc.sig.indexOf(u.id)>=0)?'':'<span style="color:#ff9a9a">'+unlText(u)+'</span><br>')+u.desc};us.onchange=uu;uu();if(rc.locked)us.disabled=true;
+  const wu=f('ひっさつ',us);ud.style.display='none';wu.appendChild(skCard(us,true));wu.appendChild(ud);if(!rc.locked)wu.appendChild(skRename(rc,2));
+  const rb=E_('button','','🎲 わざをランダムにきめる');rb.className='mid';rb.onclick=()=>{const av=Object.values(SKILLS).filter(x=>isUnl(x)),au=Object.values(ULTS).filter(x=>isUnl(x));const a1=av[Math.floor(Math.random()*av.length)];let a2=a1;for(let q=0;q<20&&a2===a1;q++)a2=av[Math.floor(Math.random()*av.length)];rc.sk=[a1.id,a2.id];rc.ult=au[Math.floor(Math.random()*au.length)].id;buildEditor()};if(!rc.locked)box.appendChild(rb);else box.appendChild(E_('div','font-size:12px;color:#ffe27a;margin:6px 0','🔒 仲間にしたオニのわざは、かえられないよ'));
   const rn=E_('button','','🎲 なまえをランダムにきめる');rn.className='mid';rn.onclick=()=>{const A=['ア','カ','サ','ナ','ハ','マ','ヤ','ラ','ヒ','ミ','ユ','シ','ト','ル','ソ','ホ','レ','セ'],B=['ヅキ','ハネ','ネ','ミ','カゼ','ヒメ','コ','ナギ','ユキ','ラン','ヨイ','ホシ'];rc.name=A[Math.floor(Math.random()*A.length)]+B[Math.floor(Math.random()*B.length)];buildEditor()};box.appendChild(rn);
   pubRow(box,custom,rc);const sv_=E_('button','','保存する');sv_.className='big';sv_.style.fontSize='18px';sv_.onclick=saveEditor;box.appendChild(sv_);
   if(custom&&!ed.isNew){const dl=E_('button','','このキャラを削除');dl.className='mid';dl.onclick=()=>{if(confirm('「'+rc.name+'」を削除しますか？')){CUSTOM=CUSTOM.filter(c=>c.id!==rc.id);PARTY=PARTY.map((p,i)=>p===rc.id?'b'+i:p);sv('oni_roster',CUSTOM);sv('oni_party',PARTY);applyParty();closeEditor()}};box.appendChild(dl)}
@@ -1092,7 +1092,7 @@ function buildRoster(){
   const add=E_('button','margin-top:4px','＋ キャラクターをついか');add.className='mid';add.onclick=()=>openEditor(null);box.appendChild(add);pubAllBtn(box);
 }
 function rndParty(){
-  const all=allChars().slice(),pick=[];
+  const all=allChars().filter(c=>!c.recruit),pick=[];
   for(let a=0;a<4;a++){const c=all.filter(x=>x.arch===a&&pick.indexOf(x)<0);if(c.length)pick.push(c[Math.floor(Math.random()*c.length)])}
   while(pick.length<4){const c=all.filter(x=>pick.indexOf(x)<0);if(!c.length)break;pick.push(c[Math.floor(Math.random()*c.length)])}
   for(let i=pick.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pick[i],pick[j]]=[pick[j],pick[i]]}
@@ -1110,7 +1110,7 @@ function doPull(n,free,tab){
   let cost=free?0:(n===10?price10:price*n);if(!free&&WAL.coin<cost)return null;
   const out=[];let sr=false;
   for(let i=0;i<n;i++){
-    if(tab){const all=allChars(),rc=pickChar(all),old=Math.min(TN_MAX,WAL.tn[rc.id]||0);
+    if(tab){const all=allChars().filter(c=>!c.recruit),rc=pickChar(all),old=Math.min(TN_MAX,WAL.tn[rc.id]||0);
       if(old>=TN_MAX){WAL.coin+=150;out.push({ch:rc,rar:charRar(rc),max:1,c:150})}else{WAL.tn[rc.id]=old+1;out.push({ch:rc,rar:charRar(rc),from:old,to:old+1})}WAL.pulls++;continue}
     let x=pickSkill();if(n===10&&i===9&&!sr&&LOW(x[0])){for(let k=0;k<60&&LOW(x[0]);k++)x=pickSkill()}
     if(!LOW(x[0]))sr=true;
@@ -2766,7 +2766,7 @@ Object.assign(BK.shadow,{atk:['blink','clubsweep','fan','clubsmash','blink','sum
 Object.assign(BK.giant,{atk:['stomp','clubsmash','rocks','slam','clubsweep']});
 Object.assign(BK.oni,{atk:['clubsmash','clubsweep','slam','ring','rocks','summon']});
 // ---- ライバル（作ったキャラが敵として登場） ----
-function rivalList(){try{return allChars().filter(c=>!c.builtin&&c.img)}catch(_){return[]}}
+function rivalList(){try{return allChars().filter(c=>!c.builtin&&c.img&&!c.recruit)}catch(_){return[]}}
 EN.rival={n:'ライバル',hp:130,spd:78,r:24,dmg:11,score:90,col:'#2a2040',acc:'#ffd24a',ic:'⚔'};
 VAR.push({k:'rival',w:3});
 const _spE7=spawnE;spawnE=function(type,x,y){
@@ -4480,6 +4480,64 @@ const ART_SRC2={tsuki:'iVBORw0KGgoAAAANSUhEUgAAASIAAAF8CAMAAABc5EYDAAAB4FBMVEVko
 for(const a of ART_EN2){EN[a.k]={n:a.n,hp:a.hp,spd:a.spd,r:a.r,dmg:a.dmg,score:a.score,col:a.col,acc:a.acc,ic:a.ic};VAR.push({k:a.k,w:a.w});ENDEX.push({k:a.k,n:a.n,d:a.d});
   const i=new Image();i.src='data:image/png;base64,'+ART_SRC2[a.k];ARTIM[a.k]={im:i,hs:a.hs};
   const b=a.ai;VAI[a.k]=(...x)=>VAI[b](...x)}
+
+/* ===== v60: 仲間にしたオニをキャラとして使える（わざ固定） ===== */
+const RC_POOL={
+ 5:[[['frostbreath','icelances'],'zero'],[['thunder','darkorb'],'tsukuyomi'],[['fire','starfall'],'inferno']],
+ 1:[[['rushpunch','voltdash'],'tempest'],[['firewhip','leapstrike'],'inferno'],[['dragonfang','flameaura'],'ragnarok']],
+ 2:[[['shunsen','moonblade'],'blade'],[['iaicut','swordwaltz'],'thousandblades'],[['spinslash','cross'],'blade']],
+ 3:[[['aegis','shieldbash'],'drop'],[['taunt','guardianspirit'],'genesis'],[['reflectwall','quakewave'],'judge']],
+ 8:[[['shadowstrike','shuriken'],'abyss'],[['mistvanish','kamaitachi'],'tsukuyomi'],[['warp','shadowclone'],'storm']],
+ 7:[[['stomp','earthrage'],'drop'],[['shockwave','groundcrack'],'ragnarok'],[['quakewave','stomp'],'drop']]
+};
+function rcHash(k){let h=0;for(let i=0;i<k.length;i++)h=(h*31+k.charCodeAt(i))>>>0;return h}
+function recruitDef(k){
+  const en=EN[k],A=ARTIM[k];if(!en||!A)return null;
+  const ai=(typeof ART_EN!=='undefined'&&ART_EN.concat(typeof ART_EN2!=='undefined'?ART_EN2:[]).find(a=>a.k===k)||{}).ai||'';
+  let arch;if(/koori|raijo|imp|frost/.test(ai))arch=5;else if(ai==='shade')arch=8;else if(ai==='armor')arch=en.hp>=380?7:3;else if(ai==='volt')arch=(rcHash(k)&1)?1:2;else arch=[1,2,3,5,7,8][rcHash(k)%6];
+  const pool=RC_POOL[arch]||RC_POOL[1],pk=pool[rcHash(k+'x')%pool.length];
+  const sk=pk[0].slice(),ult=pk[1];
+  return{id:'r_'+k,name:en.n.slice(0,12),arch,col:en.acc,fc:{cx:.5,cy:.13,s:.3},sk,ult,full:true,img:A.im.src,recruit:true,locked:true,bundled:true,builtin:false,sig:sk.concat([ult])};
+}
+const _ac60=allChars;
+allChars=function(){
+  const a=_ac60();try{
+    const al=(DEX&&DEX.ally)||{},ex=new Set(a.map(c=>c.id));
+    for(const k in al){if(!(al[k]>0)||!ARTIM[k]||ex.has('r_'+k))continue;const d=recruitDef(k);if(d&&SKILLS[d.sk[0]]&&SKILLS[d.sk[1]]&&ULTS[d.ult])a.push(d)}
+  }catch(_){}return a};
+
+/* ===== v61: 動きのリアルさ（傾き・のけぞり・着地）＋ 動的解像度で軽量化 ===== */
+const _dP61=drawPlayer;
+drawPlayer=function(p){
+  if(!G||p.down||!p.d){return _dP61(p)}
+  const px=p._px===undefined?p.x:p._px,py=p._py===undefined?p.y:p._py;p._px=p.x;p._py=p.y;
+  const vx=Math.max(-14,Math.min(14,p.x-px)),vy=Math.max(-14,Math.min(14,p.y-py));
+  p._lv=(p._lv||0)+(vx-(p._lv||0))*.22;p._lvy=(p._lvy||0)+(vy-(p._lvy||0))*.22;
+  const z=zOf(p),wasAir=p._air||0;p._air=z>8?1:0;if(wasAir&&!p._air)p._land=.2;
+  if(p._land>0)p._land-=1/60;
+  const land=Math.max(0,p._land||0)/.2,sp=Math.min(1,Math.hypot(p._lv,p._lvy)/6);
+  let tilt=p._lv*.014+(p._lvy>0?0:p._lvy*.004);
+  if(p.hurtT>0){const h=p.hurtT/.3;tilt+=-(p.fx||1)*.2*h}
+  const sq=land*.1,sx=1+sq-sp*.03,sy=1-sq+sp*.03*Math.sin(G.t*14+p.x*.01);
+  if(Math.abs(tilt)<.004&&sq<.004&&sp<.05)return _dP61(p);
+  g.save();g.translate(p.x,p.y);g.rotate(Math.max(-.22,Math.min(.22,tilt)));g.scale(sx,sy);g.translate(-p.x,-p.y);
+  try{_dP61(p)}finally{g.restore()}
+};
+// 動的解像度：自動画質のときだけ、重いと感じたら少しずつ解像度を下げる
+(function(){
+  let ema=16,last=0,bad=0,good=0;window.__dscale=1;
+  const _u=update;
+  update=function(dt){
+    _u(dt);
+    try{
+      const now=performance.now();if(last){const d=Math.min(100,now-last);ema+=(d-ema)*.05}last=now;
+      if(QMODE!=='a'||!G||G.over||(window.__dscale!==undefined&&document.hidden))return;
+      if(ema>26){bad++;good=0}else if(ema<19){good++;bad=0}else{bad=0;good=0}
+      if(bad>90&&window.__dscale>.62){window.__dscale=Math.max(.62,window.__dscale-.14);bad=0;ema=18;resize()}
+      else if(good>600&&window.__dscale<1){window.__dscale=Math.min(1,window.__dscale+.14);good=0;resize()}
+    }catch(_){}
+  };
+})();
 
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
