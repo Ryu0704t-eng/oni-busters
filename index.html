@@ -4539,6 +4539,176 @@ drawPlayer=function(p){
   };
 })();
 
+/* ===== v62: ホーム画面リニューアル ===== */
+(function(){
+  const svg="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' preserveAspectRatio='xMaxYMin slice'><defs><radialGradient id='m' cx='.5' cy='.5' r='.5'><stop offset='0' stop-color='#d9c8ff'/><stop offset='.7' stop-color='#9a7ae0'/><stop offset='1' stop-color='#6a4ab8'/></radialGradient><linearGradient id='c' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#1a1238'/><stop offset='1' stop-color='#0a0618'/></linearGradient></defs><circle cx='300' cy='100' r='88' fill='url(#m)' opacity='.75'/><g fill='url(#c)'><path d='M150 300V190l14-12v-38l8-22 8 22v38l10 8V130l8-40 8 40v60l12-10v-46l8-30 8 30v46l16 14V300z'/><path d='M270 300v-90l10-8v-28l7-24 7 24v28l10 8v90z'/><path d='M330 300v-70l12-10v-24l8-26 8 26v24l10 10v70z'/><path d='M100 300v-60l10-10v-20l7-18 7 18v20l10 10v60z'/></g></svg>";
+  const bg="url(\"data:image/svg+xml;utf8,"+encodeURIComponent(svg)+"\")";
+  const css=document.createElement('style');css.textContent=`
+  #title{background:${bg} no-repeat right -10px top 0/min(100%,520px) auto,radial-gradient(ellipse at 20% 0%,rgba(110,60,220,.5),rgba(8,6,22,.97) 62%),linear-gradient(180deg,#14092e,#07040f)!important}
+  #lobTop{align-items:flex-start!important;flex-wrap:wrap}
+  #lobTop .logo{font-family:'Dela Gothic One','Mochiy Pop One',sans-serif!important;font-size:34px!important;line-height:1.05;font-style:italic;transform:skewX(-9deg);background:linear-gradient(180deg,#ffffff 20%,#e2d4ff 60%,#b79cff);-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 0 #3a1d8a) drop-shadow(0 0 12px rgba(150,100,255,.8));position:relative;padding-top:14px}
+  #lobTop .logo small{display:none}
+  #lobTop .logo::before{content:'👑';position:absolute;right:-6px;top:-8px;font-size:22px;-webkit-text-fill-color:initial;filter:drop-shadow(0 0 6px gold);transform:skewX(9deg)}
+  #lobTop .logo::after{content:'ONI BUSTERS';display:block;font-size:10px;letter-spacing:.42em;font-style:normal;color:#b9a4f0;-webkit-text-fill-color:#b9a4f0;margin-top:2px;font-family:sans-serif;font-weight:600}
+  #lobWal{margin-top:20px;background:rgba(10,8,30,.72)!important;border:1px solid rgba(190,170,255,.4)!important;font-size:17px!important;padding:6px 16px!important;box-shadow:0 0 14px rgba(120,80,255,.35)}
+  #lobParty{background:none!important;border:none!important;padding:4px 0!important;gap:8px!important}
+  #lobParty canvas{width:70px!important;height:70px!important;border-radius:50%;border:3px solid var(--c,#c9a0ff);box-shadow:0 0 14px var(--c,#c9a0ff),inset 0 0 10px rgba(0,0,0,.5);background:#150d30}
+  #lobStat{background:rgba(12,9,34,.78);border:1px solid rgba(180,160,255,.3);border-radius:18px;padding:9px 6px;font-size:13px!important;font-weight:800;color:#e8e0ff!important;margin:4px 0 10px!important;box-shadow:0 0 16px rgba(100,70,220,.25)}
+  #lobGrid{gap:10px!important}
+  #lobGrid button{position:relative;display:flex!important;align-items:center;gap:10px;text-align:left;padding:10px 12px!important;border-radius:16px!important;border:1px solid rgba(190,170,255,.35)!important;background:linear-gradient(135deg,rgba(70,50,160,.85),rgba(24,16,60,.92))!important;box-shadow:0 4px 14px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18);overflow:hidden;color:#fff;transition:transform .1s}
+  #lobGrid button:active{transform:scale(.97)}
+  #lobGrid button::before{content:'';position:absolute;left:-30%;top:-60%;width:60%;height:220%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);transform:rotate(20deg);pointer-events:none}
+  #lobGrid .ico{font-size:34px;line-height:1;flex:none;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+  #lobGrid .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+  #lobGrid .tx b{font-size:17px;font-weight:900;letter-spacing:.04em}
+  #lobGrid .tx small{font-size:10.5px!important;opacity:.8;margin-top:1px}
+  #lobGrid .chev{font-size:24px;opacity:.7;flex:none;font-weight:300}
+  #lobGrid button.hero{min-height:84px;background:linear-gradient(100deg,rgba(130,80,255,.95),rgba(60,36,150,.95) 55%,rgba(130,90,255,.9))!important;border:2px solid rgba(220,200,255,.8)!important;box-shadow:0 0 22px rgba(140,90,255,.6),0 6px 18px rgba(0,0,0,.5)}
+  #lobGrid button.hero .ico{font-size:46px}#lobGrid button.hero .tx b{font-size:30px;font-style:italic;letter-spacing:.08em;text-shadow:0 0 12px rgba(200,170,255,.9)}#lobGrid button.hero .tx small{font-size:13px}
+  #lobGrid #btnChal{background:linear-gradient(135deg,rgba(90,60,190,.9),rgba(30,20,80,.92))!important}
+  #lobGrid #btnGacha{background:linear-gradient(135deg,#c24ad8,#5a2aa8)!important;border-color:rgba(255,170,255,.7)!important}
+  #lobGrid #btnMiss{background:linear-gradient(135deg,rgba(60,70,200,.9),rgba(22,20,70,.92))!important}
+  #lobGrid #btnRoster{background:linear-gradient(135deg,rgba(50,90,210,.9),rgba(20,24,72,.92))!important}
+  #lobGrid #btnEnki{background:linear-gradient(135deg,#c0344a,#4a1430)!important;border-color:rgba(255,140,150,.65)!important}
+  #lobGrid #btnWork{background:linear-gradient(135deg,rgba(80,60,200,.9),rgba(26,18,70,.92))!important}
+  #lobGrid #btnPrac{background:linear-gradient(135deg,#a43aa8,#3a1458)!important}
+  #lobGrid #btnMap{background:linear-gradient(135deg,rgba(50,80,200,.85),rgba(20,24,70,.9))!important;font-weight:800;font-size:15px}
+  #lobGrid #btnHelpT{grid-column:1/-1;justify-self:center;width:72%;border-radius:30px!important;background:rgba(14,10,36,.85)!important}
+  #lobGrid #btnHelpT .ico{font-size:26px}
+  @media (orientation:portrait){#lobStage{display:none!important}}
+  #best{font-size:14px!important;letter-spacing:.1em;color:#b9a4f0!important;margin-top:8px}
+  @media (orientation:portrait){#lobTop .logo{font-size:42px!important}}
+  @media (max-height:520px){#lobGrid button{padding:6px 8px!important}#lobGrid .ico{font-size:22px}#lobGrid .tx b{font-size:14px}#lobGrid button.hero .tx b{font-size:22px}#lobTop .logo{font-size:22px!important;padding-top:6px}#lobTop .logo::after{display:none}#lobWal{margin-top:6px}}
+  `;document.head.appendChild(css);
+  const SUB={btnChal:'腕試しに挑戦',btnGacha:'キャラを手に入れよう',btnMiss:'まいにち報酬',btnRoster:'キャラ・追加',btnDex:'キャラ・アイテムを確認',btnEnki:'7体・並/超/極',btnWork:'そうびをつくる・きょうか',btnStart:'ウェーブ制',btnPrac:'ボスと練習',btnStory:'クエストに出発',btnHelpT:'画質・ソロ・遊び方',btnInfo:'キャラと技の説明'};
+  function restyle(){
+    try{
+      document.querySelectorAll('#lobGrid>button').forEach(b=>{
+        if(b.querySelector('.tx'))return;
+        const bdg=b.querySelector('.bdg');const lines=(b.innerText||'').split('\n').map(s=>s.trim()).filter(Boolean);
+        if(!lines.length)return;
+        const m=lines[0].match(/^(\S+)\s+(.*)$/);let ic='',ti=lines[0];
+        if(b.id==='btnMap'){ic='📍';ti=lines[0]}
+        else if(m&&!/^[ぁ-んァ-ン一-龥A-Za-z0-9]/.test(m[1])){ic=m[1];ti=m[2]}
+        const sub=SUB[b.id]!==undefined?SUB[b.id]:(lines[1]||'');
+        const stale=b.id==='btnMap';
+        b.innerHTML='<span class="ico">'+ic+'</span><span class="tx"><b>'+ti.replace(/[<>&]/g,'')+'</b>'+(sub&&!stale?'<small>'+sub+'</small>':'')+'</span><span class="chev">›</span>';
+        if(bdg)b.appendChild(bdg);
+      });
+      const all=allChars();document.querySelectorAll('#lobParty>div').forEach((c,i)=>{const rc=all.find(x=>x.id===PARTY[i]);if(rc)c.style.setProperty('--c',rc.col)});
+      const st=document.getElementById('lobStat');
+    }catch(e){}
+  }
+  const _rl=refreshLobby;
+  refreshLobby=function(){_rl();restyle()};
+  const T=document.getElementById('title');
+  if(T){new MutationObserver(()=>{if(!T.classList.contains('hide'))setTimeout(restyle,30)}).observe(T,{attributes:true,attributeFilter:['class']});setTimeout(restyle,200)}
+})();
+
+// 敵の動きのリアル感：進む向きに傾く／被弾でつぶれる／息づかい
+(function(){
+  const _de=drawEnemy;
+  drawEnemy=function(e){
+    if(!G||e.dead!==undefined)return _de(e);
+    const px=e._px===undefined?e.x:e._px;e._px=e.x;const vx=Math.max(-12,Math.min(12,e.x-px));e._lv=(e._lv||0)+(vx-(e._lv||0))*.2;
+    const fl=e.flash>0?Math.min(1,e.flash*5):0,br=Math.sin(G.t*2.4+e.x*.013)*.012;
+    const tilt=e._lv*.013-(fl?(e.face>0?-1:1)*.1*fl:0),sy=1+br-fl*.07,sx=1-br+fl*.05;
+    if(Math.abs(tilt)<.004&&!fl&&Math.abs(br)<.002)return _de(e);
+    g.save();g.translate(e.x,e.y);g.rotate(Math.max(-.2,Math.min(.2,tilt)));g.scale(sx,sy);g.translate(-e.x,-e.y);
+    try{_de(e)}finally{g.restore()}
+  };
+  // 味方：立ち止まっているときの息づかいと重心移動
+  const _dp=drawPlayer;
+  drawPlayer=function(p){
+    if(!G||p.down||!p.d||(p._lv!==undefined&&Math.abs(p._lv)>.8))return _dp(p);
+    const b=Math.sin(G.t*2.2+p.x*.01),sw=Math.sin(G.t*.9+p.y*.02);
+    g.save();g.translate(p.x,p.y);g.rotate(sw*.012);g.scale(1-b*.006,1+b*.012);g.translate(-p.x,-p.y);
+    try{_dp(p)}finally{g.restore()}
+  };
+})();
+
+/* ===== v63: メニュー再構成＋操作演出（ボタン押下・画面切替・暗転） ===== */
+(function(){
+  const css=document.createElement('style');css.textContent=`
+  button{transition:transform .12s cubic-bezier(.3,1.6,.5,1),filter .12s,box-shadow .2s}
+  button:active:not(:disabled){transform:scale(.93)!important;filter:brightness(1.25)}
+  @keyframes ovIn63{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+  .ov:not(.hide){animation:ovIn63 .26s ease-out both}
+  @keyframes glow63{0%,100%{box-shadow:0 0 10px var(--c,#ffd24a),0 0 2px #fff}50%{box-shadow:0 0 22px var(--c,#ffd24a),0 0 6px #fff}}
+  #lobParty>div{border-radius:50%;transition:transform .15s}
+  #lobParty>div:active{transform:scale(.92)}
+  #lobParty>div:first-child canvas{animation:glow63 1.6s ease-in-out infinite}
+  #lobGrid{display:grid!important;grid-template-columns:repeat(4,1fr)!important}
+  #lobGrid button{grid-column:span 1;order:20}
+  #lobGrid #btnStory{grid-column:1/-1;order:0}
+  #lobGrid #btnRoster{order:1}#lobGrid #btnGacha{order:2}#lobGrid #btnChal{order:3}#lobGrid #btnMiss{order:4}
+  #lobGrid #btnRoster,#lobGrid #btnGacha,#lobGrid #btnChal,#lobGrid #btnMiss{grid-column:span 2;min-height:62px}
+  @media (min-width:560px){#lobGrid #btnRoster,#lobGrid #btnGacha,#lobGrid #btnChal,#lobGrid #btnMiss{grid-column:span 1}}
+  #lobGrid #btnDex{order:10}#lobGrid #btnWork{order:11}#lobGrid #btnEnki{order:12}#lobGrid #btnStart{order:13}#lobGrid #btnPrac{order:14}#lobGrid #btnMap{order:15}#lobGrid #btnInfo{order:16}#lobGrid #btnHelpT{order:17}
+  #lobGrid button.sec{flex-direction:column;justify-content:center;gap:2px;padding:8px 4px!important;min-height:64px;text-align:center;border-radius:14px!important;background:linear-gradient(160deg,rgba(60,42,140,.85),rgba(20,14,52,.92))!important}
+  #lobGrid button.sec .tx{flex:none;align-items:center}#lobGrid button.sec .tx b{font-size:11.5px;letter-spacing:0;white-space:nowrap}
+  #lobGrid button.sec .tx small,#lobGrid button.sec .chev{display:none}#lobGrid button.sec .ico{font-size:26px}
+  #lobGrid #btnMap.sec .tx b{font-size:10px;white-space:normal;line-height:1.15}
+  #lobGrid #btnHelpT.sec{width:auto;justify-self:stretch;border-radius:14px!important}
+  #lobGrid #btnEnki.sec{background:linear-gradient(160deg,#b02a44,#40122c)!important}
+  #fade63{position:fixed;inset:0;background:#000;z-index:99999;pointer-events:none;opacity:0;display:flex;align-items:center;justify-content:center;color:#e9ddff;font:900 22px/1.3 'Dela Gothic One',sans-serif;letter-spacing:.2em;text-shadow:0 0 14px #9a6aff}
+  @media (max-height:520px){#lobGrid{grid-template-columns:repeat(4,1fr)!important}#lobGrid button.hero,#lobGrid #btnStory{grid-column:1/-1!important}#lobGrid #btnRoster .chev,#lobGrid #btnGacha .chev,#lobGrid #btnChal .chev,#lobGrid #btnMiss .chev,#lobGrid #btnRoster small,#lobGrid #btnGacha small,#lobGrid #btnChal small,#lobGrid #btnMiss small{display:none!important}#lobGrid #btnRoster .tx b,#lobGrid #btnGacha .tx b,#lobGrid #btnChal .tx b,#lobGrid #btnMiss .tx b{font-size:11px;white-space:nowrap}#lobGrid #btnRoster .ico,#lobGrid #btnGacha .ico,#lobGrid #btnChal .ico,#lobGrid #btnMiss .ico{font-size:18px}#lobGrid #btnHelpT{grid-column:1/-1!important}#lobGrid #btnRoster,#lobGrid #btnGacha,#lobGrid #btnChal,#lobGrid #btnMiss{grid-column:span 1;min-height:44px}#lobGrid button.sec{min-height:44px;flex-direction:row;gap:4px;padding:4px!important}#lobGrid button.sec .ico{font-size:18px}#lobGrid button.sec .tx b{font-size:10px}}
+  `;document.head.appendChild(css);
+  const SEC=['btnDex','btnWork','btnEnki','btnStart','btnPrac','btnMap','btnInfo','btnHelpT'];
+  const mark=()=>{try{SEC.forEach(id=>{const b=document.getElementById(id);if(b)b.classList.add('sec')})}catch(_){}};
+  const _rl2=refreshLobby;refreshLobby=function(){_rl2();mark()};
+  const T=document.getElementById('title');if(T){new MutationObserver(()=>setTimeout(mark,60)).observe(T,{attributes:true,attributeFilter:['class']});setTimeout(mark,250)}
+  // 暗転 → 戦闘画面
+  const f=document.createElement('div');f.id='fade63';document.body.appendChild(f);
+  const _sg=startGame;
+  startGame=function(){
+    const r=_sg.apply(this,arguments);
+    try{f.style.transition='none';f.style.opacity='1';f.textContent='';void f.offsetWidth;
+      f.style.transition='opacity .8s ease-out .25s';f.style.opacity='0'}catch(_){}
+    return r};
+})();
+
+/* ===== v63: メニュー再構成＋操作演出（ボタン押下・画面切替・暗転） ===== */
+(function(){
+  const css=document.createElement('style');css.textContent=`
+  button{transition:transform .12s cubic-bezier(.3,1.6,.5,1),filter .12s,box-shadow .2s}
+  button:active:not(:disabled){transform:scale(.93)!important;filter:brightness(1.25)}
+  @keyframes ovIn63{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+  .ov:not(.hide){animation:ovIn63 .26s ease-out both}
+  @keyframes glow63{0%,100%{box-shadow:0 0 10px var(--c,#ffd24a),0 0 2px #fff}50%{box-shadow:0 0 22px var(--c,#ffd24a),0 0 6px #fff}}
+  #lobParty>div{border-radius:50%;transition:transform .15s}
+  #lobParty>div:active{transform:scale(.92)}
+  #lobParty>div:first-child canvas{animation:glow63 1.6s ease-in-out infinite}
+  #lobGrid{display:grid!important;grid-template-columns:repeat(4,1fr)!important}
+  #lobGrid button{grid-column:span 1;order:20}
+  #lobGrid #btnStory{grid-column:1/-1;order:0}
+  #lobGrid #btnRoster{order:1}#lobGrid #btnGacha{order:2}#lobGrid #btnChal{order:3}#lobGrid #btnMiss{order:4}
+  #lobGrid #btnRoster,#lobGrid #btnGacha,#lobGrid #btnChal,#lobGrid #btnMiss{grid-column:span 2;min-height:62px}
+  @media (min-width:560px){#lobGrid #btnRoster,#lobGrid #btnGacha,#lobGrid #btnChal,#lobGrid #btnMiss{grid-column:span 1}}
+  #lobGrid #btnDex{order:10}#lobGrid #btnWork{order:11}#lobGrid #btnEnki{order:12}#lobGrid #btnStart{order:13}#lobGrid #btnPrac{order:14}#lobGrid #btnMap{order:15}#lobGrid #btnInfo{order:16}#lobGrid #btnHelpT{order:17}
+  #lobGrid button.sec{flex-direction:column;justify-content:center;gap:2px;padding:8px 4px!important;min-height:64px;text-align:center;border-radius:14px!important;background:linear-gradient(160deg,rgba(60,42,140,.85),rgba(20,14,52,.92))!important}
+  #lobGrid button.sec .tx{flex:none;align-items:center}#lobGrid button.sec .tx b{font-size:11.5px;letter-spacing:0;white-space:nowrap}
+  #lobGrid button.sec .tx small,#lobGrid button.sec .chev{display:none}#lobGrid button.sec .ico{font-size:26px}
+  #lobGrid #btnMap.sec .tx b{font-size:10px;white-space:normal;line-height:1.15}
+  #lobGrid #btnHelpT.sec{width:auto;justify-self:stretch;border-radius:14px!important}
+  #lobGrid #btnEnki.sec{background:linear-gradient(160deg,#b02a44,#40122c)!important}
+  #fade63{position:fixed;inset:0;background:#000;z-index:99999;pointer-events:none;opacity:0;display:flex;align-items:center;justify-content:center;color:#e9ddff;font:900 22px/1.3 'Dela Gothic One',sans-serif;letter-spacing:.2em;text-shadow:0 0 14px #9a6aff}
+  @media (max-height:520px){#lobGrid{grid-template-columns:repeat(4,1fr)!important}#lobGrid button.hero,#lobGrid #btnStory{grid-column:1/-1!important}#lobGrid #btnRoster .chev,#lobGrid #btnGacha .chev,#lobGrid #btnChal .chev,#lobGrid #btnMiss .chev,#lobGrid #btnRoster small,#lobGrid #btnGacha small,#lobGrid #btnChal small,#lobGrid #btnMiss small{display:none!important}#lobGrid #btnRoster .tx b,#lobGrid #btnGacha .tx b,#lobGrid #btnChal .tx b,#lobGrid #btnMiss .tx b{font-size:11px;white-space:nowrap}#lobGrid #btnRoster .ico,#lobGrid #btnGacha .ico,#lobGrid #btnChal .ico,#lobGrid #btnMiss .ico{font-size:18px}#lobGrid #btnHelpT{grid-column:1/-1!important}#lobGrid #btnRoster,#lobGrid #btnGacha,#lobGrid #btnChal,#lobGrid #btnMiss{grid-column:span 1;min-height:44px}#lobGrid button.sec{min-height:44px;flex-direction:row;gap:4px;padding:4px!important}#lobGrid button.sec .ico{font-size:18px}#lobGrid button.sec .tx b{font-size:10px}}
+  `;document.head.appendChild(css);
+  const SEC=['btnDex','btnWork','btnEnki','btnStart','btnPrac','btnMap','btnInfo','btnHelpT'];
+  const mark=()=>{try{SEC.forEach(id=>{const b=document.getElementById(id);if(b)b.classList.add('sec')})}catch(_){}};
+  const _rl2=refreshLobby;refreshLobby=function(){_rl2();mark()};
+  const T=document.getElementById('title');if(T){new MutationObserver(()=>setTimeout(mark,60)).observe(T,{attributes:true,attributeFilter:['class']});setTimeout(mark,250)}
+  // 暗転 → 戦闘画面
+  const f=document.createElement('div');f.id='fade63';document.body.appendChild(f);
+  const _sg=startGame;
+  startGame=function(){
+    const r=_sg.apply(this,arguments);
+    try{f.style.transition='none';f.style.opacity='1';f.textContent='';void f.offsetWidth;
+      f.style.transition='opacity .8s ease-out .25s';f.style.opacity='0'}catch(_){}
+    return r};
+})();
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
