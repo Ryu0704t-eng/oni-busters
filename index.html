@@ -5252,8 +5252,26 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
   const clamp_=(v,a,b)=>Math.max(a,Math.min(b,v));
   const okP=q=>Array.isArray(q)&&q.length===2&&isFinite(q[0])&&isFinite(q[1]);
   // ---- 描画側 ----
+  function autoRig(s){
+    try{const im=s.im,iw=im.width||im.naturalWidth,ih=im.height||im.naturalHeight;if(!iw||!ih)return null;
+      const w=64,h=Math.max(16,Math.round(64*ih/iw)),c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.drawImage(im,0,0,w,h);
+      const d=x.getImageData(0,0,w,h).data,A=(i,j)=>d[(j*w+i)*4+3]>60;
+      let x0=w,x1=0,y0=h,y1=0;for(let j=0;j<h;j++)for(let i=0;i<w;i++)if(A(i,j)){if(i<x0)x0=i;if(i>x1)x1=i;if(j<y0)y0=j;if(j>y1)y1=j}
+      const bw=x1-x0,bh=y1-y0;if(bw<10||bh<14)return null;
+      const full=s.type==='full',rowV=full?.55:.78,rj=Math.round(y0+bh*rowV);
+      let xl=-1,xr=-1;for(let i=0;i<w;i++)if(A(i,rj)){if(xl<0)xl=i;xr=i}
+      if(xl<0||xr-xl<bw*.25)return null;
+      const hl=[(xl+bw*.07)/w,rj/h],hr=[(xr-bw*.07)/w,rj/h];
+      let fl=[(x0+bw*.38)/w,(y1-1)/h],fr=[(x0+bw*.62)/w,(y1-1)/h];
+      if(full){const lo=[];for(let j=Math.round(y1-bh*.1);j<=y1;j++)for(let i=x0;i<=x1;i++)if(A(i,j))lo.push(i);
+        if(lo.length>6){lo.sort((a,b)=>a-b);const m=lo[Math.floor(lo.length/2)];const L=lo.filter(v=>v<=m),R=lo.filter(v=>v>m);
+          if(L.length>3&&R.length>3){const ml=L.reduce((a,b)=>a+b,0)/L.length,mr=R.reduce((a,b)=>a+b,0)/R.length;if(mr-ml>bw*.12){fl=[ml/w,(y1-1)/h];fr=[mr/w,(y1-1)/h]}}}}
+      return{auto:1,hl,hr,fl,fr,sp:.42,sf:clamp_((fl[0]+fr[0])/2,.4,.6)};
+    }catch(_){return null}}
   window.rigOf74=function(p,s){
-    const d=p&&p.d;if(!d||!d.rig)return null;const r=d.rig;
+    const d=p&&p.d;if(!d)return null;
+    if(!d.rig){if(!s||!s.flat)return null;if(s._ar===undefined||s._arIm!==s.im){s._arIm=s.im;s._ar=autoRig(s)}return s._ar}
+    const r=d.rig;
     if(d._rg74&&d._rg74.src===r)return d._rg74;
     if(!okP(r.hl)||!okP(r.hr)||!okP(r.fl)||!okP(r.fr)){d._rg74={src:r,bad:1};return null}
     const hv=(r.hl[1]+r.hr[1])/2;
@@ -5270,10 +5288,10 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
       const hd=i?r.hr:r.hl,front=hd[0]>=cu?1:0;
       const hx=hd[0]*c.iw,hy=hd[1]*c.ih,sxp=hx+(cu*c.iw-hx)*.4,syp=Math.max(.1*c.ih,hy-.24*c.ih);
       const dx=hx-sxp,dy=hy-syp,L=Math.hypot(dx,dy);if(L<8)continue;
-      let a=Math.sin(ph+(front?0:Math.PI))*.15*swk+(1-swk)*Math.sin(t*1.8+(front?0:2.1))*.035;
-      a+=front?-.55*atk:.25*atk;           // 攻撃：前の手がふりぬく
-      a+=-(front?.45:.32)*gu;             // ガード：手をあげる
-      a+=.4*dg;                           // 回避：手がうしろへ流れる
+      let a=Math.sin(ph+(front?0:Math.PI))*.3*swk+(1-swk)*Math.sin(t*1.8+(front?0:2.1))*.06;
+      a+=front?-.9*atk:.4*atk;           // 攻撃：前の手がふりぬく
+      a+=-(front?.8:.55)*gu;             // ガード：手をあげる
+      a+=.7*dg;                           // 回避：手がうしろへ流れる
       a+=Math.sin(t*50+i)*.1*hurt;        // 被弾：ふるえ
       if(Math.abs(a)<.01)continue;
       const ux=dx/L,uy=dy/L,nx=-uy,ny=ux,wd=Math.max(.05*c.iw,.34*L),ex=hx+ux*L*.14,ey=hy+uy*L*.14;
@@ -7021,7 +7039,7 @@ function drawSpriteBody(p){
       }else g.drawImage(S,0,sy0,iw,sh,dx,dy,W,dh);
     }
     if(legMode&&q0>=0){ // 脚：ひざ・足がなめらかにふれる（腰を支点に左右半分を回転）
-      const sy0=Math.max(0,Math.round(q0*ih/N)-1),dyT=yb[q0]-.6,dH=yb[N]-yb[q0]+1.2,hs=ih-sy0,half=W*SPF,ov=1.5*W/iw,dxl=-cx+ox(sp)+ex,pvx=dxl+half,a1=sph*(flat?.2:.3)*swk;
+      const sy0=Math.max(0,Math.round(q0*ih/N)-1),dyT=yb[q0]-.6,dH=yb[N]-yb[q0]+1.2,hs=ih-sy0,half=W*SPF,ov=1.5*W/iw,dxl=-cx+ox(sp)+ex,pvx=dxl+half,a1=sph*(flat?.32:.3)*swk;
       for(let sd=0;sd<2;sd++){const sg=sd?-1:1,ang=a1*sg,lf=Math.max(0,sg*sph)*5*swk;
         g.save();g.translate(pvx,dyT-lf);g.rotate(ang);g.translate(-pvx,-dyT);
         if(!sd)g.drawImage(S,0,sy0,iw*SPF+1.5,hs,dxl,dyT,half+ov,dH);else g.drawImage(S,iw*SPF-1.5,sy0,iw*(1-SPF)+1.5,hs,dxl+half-ov,dyT,W-half+ov,dH);
