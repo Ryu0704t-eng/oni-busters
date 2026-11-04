@@ -5201,6 +5201,33 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
   if(document.readyState==='complete')init();else window.addEventListener('load',init);
 })();
 
+// ===== v75: 演出(高/低/オフ)・画面の揺れ・ダメージ表示 の設定 =====
+(function(){
+  const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(_){return null}};
+  let FX=+(LS('oni_fx75')||(FXL?1:0)),SHK=LS('oni_shk75')!=='0',DMG=LS('oni_dmg75')!=='0',cnt=0;
+  const apply=()=>{try{FXL=FX>=1;LS('oni_fxl',FXL?'1':'0')}catch(_){}document.body.classList.toggle('fxoff75',FX===2)};
+  const css=document.createElement('style');css.textContent='body.fxoff75 *,body.fxoff75 *::before,body.fxoff75 *::after{animation-duration:.001s!important;animation-iteration-count:1!important}body.fxoff75 #sak66{display:none!important}';document.head.appendChild(css);
+  const _pt=pt;pt=function(o){if(FX===2)return;if(FX===1&&((++cnt)&1))return;_pt(o)};
+  const _sk=shk;shk=function(v){if(!SHK)return;_sk(v)};
+  const _fl=flash;flash=function(a,c){if(FX===2)return;_fl(a,c)};
+  const _ti=tint;tint=function(c,a,d){if(FX===2)return;_ti(c,a,d)};
+  const _am=drawAmbient;drawAmbient=function(){if(FX===0)_am()};
+  const _tx=txt;txt=function(x,y,s,col,big){
+    try{if(typeof s==='string'&&/^-?[\d,.]+!?$/.test(s)){if(!DMG)return;if(FX>=1&&G&&G.TX&&G.TX.length>(FX===2?6:12))return}}catch(_){}
+    return _tx(x,y,s,col,big)};
+  apply();
+  const nm=['高（ふつう）','低（へらす）','オフ（かざりなし）'];
+  const _oh=openHelp;openHelp=function(){_oh();try{
+    const S=document.getElementById('helpSet');if(!S||document.getElementById('btnFx75'))return;
+    const mk=(id,lab,fn)=>{const b=document.createElement('button');b.id=id;b.className='mid';b.style.width='100%';const up=()=>{b.textContent=lab()};up();b.onclick=()=>{fn();up()};S.insertBefore(b,S.firstChild);return b};
+    // 先頭に並べるので逆順で作る
+    mk('btnDmg75',()=>'ダメージ表示：'+(DMG?'オン':'オフ'),()=>{DMG=!DMG;LS('oni_dmg75',DMG?'1':'0')});
+    mk('btnShk75',()=>'画面の揺れ：'+(SHK?'オン':'オフ'),()=>{SHK=!SHK;LS('oni_shk75',SHK?'1':'0')});
+    mk('btnFx75',()=>'演出：'+nm[FX],()=>{FX=(FX+1)%3;LS('oni_fx75',String(FX));apply();const o=document.getElementById('btnFXL');if(o)o.textContent='エフェクト：'+(FXL?'へらす':'ふつう')});
+  }catch(e){}};
+  window.FX75=()=>({FX,SHK,DMG});
+})();
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
