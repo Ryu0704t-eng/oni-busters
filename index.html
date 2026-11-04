@@ -762,7 +762,7 @@ function allChars(){
   const lo=id=>LOADOUT[id]||{};
   const b=[0,1,2,3].map(i=>({id:'b'+i,builtin:true,b:i,arch:i,name:BASE[i].name,col:BASE[i].col,fc:lo('b'+i).fc||BASE[i].crop,
     sk:lo('b'+i).sk||BSK[i],ult:lo('b'+i).ult||BULT[i],skn:lo('b'+i).skn}));
-  const bd=BUNDLED.map(c=>Object.assign({},c,{bundled:true,builtin:false,fc:lo(c.id).fc||c.fc,sk:lo(c.id).sk||c.sk,ult:lo(c.id).ult||c.ult,skn:lo(c.id).skn||c.skn,sig:c.sk.concat([c.ult])}));
+  const bd=BUNDLED.map(c=>Object.assign({},c,{bundled:true,builtin:false,fc:lo(c.id).fc||c.fc,sk:lo(c.id).sk||c.sk,ult:lo(c.id).ult||c.ult,skn:lo(c.id).skn||c.skn,rig:lo(c.id).rig||c.rig,sig:c.sk.concat([c.ult])}));
   return b.concat(bd,CUSTOM.map(c=>Object.assign({builtin:false},c)));
 }
 function getChar(id){return allChars().find(c=>c.id===id)||allChars()[0]}
@@ -962,13 +962,13 @@ function saveEditor(){
       const W=ed.cut.width,H=ed.cut.height,cr=sprCropAlpha(ed.cut,420),sw=Math.min((rc.fc.s)*W,W,H);
       img=cr.im.toDataURL('image/png');
       fc={cx:clamp((rc.fc.cx*W-cr.x0)/cr.cw,0,1),cy:clamp((rc.fc.cy*H-cr.y0)/cr.ch,0,1),s:clamp(sw/cr.cw,.05,1)};
-      rc.full=cr.full;
+      rc.full=cr.full;if(rc.rig){const q=a=>[clamp((a[0]*W-cr.x0)/cr.cw,0,1),clamp((a[1]*H-cr.y0)/cr.ch,0,1)];rc.rig={hl:q(rc.rig.hl),hr:q(rc.rig.hr),fl:q(rc.rig.fl),fr:q(rc.rig.fr)}}
     }
-    const i=CUSTOM.findIndex(c=>c.id===rc.id),o={id:rc.id,name:rc.name,arch:rc.arch,col:rc.col,img,fc,full:rc.full,sk:rc.sk,ult:rc.ult,skn:rc.skn};
+    const i=CUSTOM.findIndex(c=>c.id===rc.id),o={id:rc.id,name:rc.name,arch:rc.arch,col:rc.col,img,fc,full:rc.full,sk:rc.sk,ult:rc.ult,skn:rc.skn,rig:rc.rig};
     const bak=CUSTOM.slice();
     if(i>=0)CUSTOM[i]=o;else{if(CUSTOM.length>=12){alert('オリジナルキャラは12人までです');return}CUSTOM.push(o);DEX.char[rc.id]=DEX.char[rc.id]||0}
     if(!sv('oni_roster',CUSTOM)){alert('保存容量がいっぱいです。使わないキャラを削除してね');CUSTOM=bak;return}
-  }else{LOADOUT[rc.id]={sk:rc.sk,ult:rc.ult,fc:rc.fc,skn:rc.skn};sv('oni_loadout',LOADOUT)}
+  }else{LOADOUT[rc.id]={sk:rc.sk,ult:rc.ult,fc:rc.fc,skn:rc.skn,rig:rc.rig};sv('oni_loadout',LOADOUT)}
   saveDex();applyParty();closeEditor();
 }
 function closeEditor(){$('cedit').classList.add('hide');if(ed&&ed.from==='dex'){$('dex').classList.remove('hide');buildDex()}else{$('roster').classList.remove('hide');buildRoster()}}
@@ -5247,6 +5247,94 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
     im.src=U(k);im.alt=t;rt.style.display='none'}catch(e){}}).observe(rt,{childList:true,characterData:true,subtree:true})}
 })();
 
+// ===== v77: 手足の位置(リグ)：キャラ作成で手・足をタップ指定 → 腕と脚が本当に動く =====
+(function(){
+  const clamp_=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const okP=q=>Array.isArray(q)&&q.length===2&&isFinite(q[0])&&isFinite(q[1]);
+  // ---- 描画側 ----
+  window.rigOf74=function(p,s){
+    const d=p&&p.d;if(!d||!d.rig)return null;const r=d.rig;
+    if(d._rg74&&d._rg74.src===r)return d._rg74;
+    if(!okP(r.hl)||!okP(r.hr)||!okP(r.fl)||!okP(r.fr)){d._rg74={src:r,bad:1};return null}
+    const hv=(r.hl[1]+r.hr[1])/2;
+    d._rg74={src:r,hl:r.hl,hr:r.hr,fl:r.fl,fr:r.fr,sp:clamp_(1-(hv-.02),.25,.58),sf:clamp_((r.fl[0]+r.fr[0])/2,.35,.65)};
+    return d._rg74;
+  };
+  const _ro=window.rigOf74;window.rigOf74=function(p,s){const r=_ro(p,s);return r&&!r.bad?r:null};
+  window.rigArms74=function(p,s,src,r,c){
+    const t=G.t,ph=c.ph,swk=c.swk,kx=c.W/c.iw,ky=c.H*c.sY/c.ih,X0=-c.cx,Y0=c.bottom-c.H*c.sY;
+    const rate=p.d.rate||.4;let atk=0;if(p.atkT>0&&p.atkT<=rate)atk=Math.sin(clamp_(p.atkT/rate,0,1)*Math.PI);
+    const gu=p._g72||0,dg=p.dodgeT>0?Math.sin(clamp_(1-p.dodgeT/.34,0,1)*Math.PI):0,hurt=p.hurtT>0?Math.min(1,p.hurtT*3):0;
+    const cu=(r.fl[0]+r.fr[0])/2;
+    for(let i=0;i<2;i++){
+      const hd=i?r.hr:r.hl,front=hd[0]>=cu?1:0;
+      const hx=hd[0]*c.iw,hy=hd[1]*c.ih,sxp=hx+(cu*c.iw-hx)*.4,syp=Math.max(.1*c.ih,hy-.24*c.ih);
+      const dx=hx-sxp,dy=hy-syp,L=Math.hypot(dx,dy);if(L<8)continue;
+      let a=Math.sin(ph+(front?0:Math.PI))*.15*swk+(1-swk)*Math.sin(t*1.8+(front?0:2.1))*.035;
+      a+=front?-.55*atk:.25*atk;           // 攻撃：前の手がふりぬく
+      a+=-(front?.45:.32)*gu;             // ガード：手をあげる
+      a+=.4*dg;                           // 回避：手がうしろへ流れる
+      a+=Math.sin(t*50+i)*.1*hurt;        // 被弾：ふるえ
+      if(Math.abs(a)<.01)continue;
+      const ux=dx/L,uy=dy/L,nx=-uy,ny=ux,wd=Math.max(.05*c.iw,.34*L),ex=hx+ux*L*.14,ey=hy+uy*L*.14;
+      const P=[[sxp+nx*wd,syp+ny*wd],[sxp-nx*wd,syp-ny*wd],[ex-nx*wd,ey-ny*wd],[ex+nx*wd,ey+ny*wd]];
+      let bx0=1e9,by0=1e9,bx1=-1e9,by1=-1e9;for(const q of P){bx0=Math.min(bx0,q[0]);by0=Math.min(by0,q[1]);bx1=Math.max(bx1,q[0]);by1=Math.max(by1,q[1])}
+      bx0=Math.max(0,Math.floor(bx0));by0=Math.max(0,Math.floor(by0));bx1=Math.min(c.iw,Math.ceil(bx1));by1=Math.min(c.ih,Math.ceil(by1));
+      const bw=bx1-bx0,bh=by1-by0;if(bw<2||bh<2)continue;
+      const PX=X0+sxp*kx,PY=Y0+syp*ky;
+      g.save();g.translate(PX,PY);g.rotate(a);g.translate(-PX,-PY);
+      g.beginPath();P.forEach((q,k)=>{const X=X0+q[0]*kx,Y=Y0+q[1]*ky;k?g.lineTo(X,Y):g.moveTo(X,Y)});g.closePath();g.clip();
+      g.drawImage(src,bx0,by0,bw,bh,X0+bx0*kx,Y0+by0*ky,bw*kx,bh*ky);
+      g.restore();
+    }
+  };
+  const _bd=buildDef;buildDef=function(rc){const d=_bd(rc);try{if(rc&&rc.rig)d.rig=rc.rig}catch(_){}return d};
+
+  // ---- 編集画面 ----
+  const NAMES={hl:'画面の左の手',hr:'画面の右の手',fl:'画面の左の足',fr:'画面の右の足'},KEYS=['hl','hr','fl','fr'];
+  function bbox(cv){try{const w=cv.width,h=cv.height,d=cv.getContext('2d').getImageData(0,0,w,h).data;let x0=w,y0=h,x1=0,y1=0;
+    for(let y=0;y<h;y+=2)for(let x=0;x<w;x+=2)if(d[(y*w+x)*4+3]>40){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+    if(x1<=x0||y1<=y0)return{x0:0,y0:0,x1:w,y1:h};return{x0,y0,x1,y1}}catch(_){return{x0:0,y0:0,x1:cv.width,y1:cv.height}}}
+  function autoPts(cv){const b=bbox(cv),w=b.x1-b.x0,h=b.y1-b.y0,W=cv.width,H=cv.height,P=(u,v)=>[(b.x0+w*u)/W,(b.y0+h*v)/H];
+    return{hl:P(.24,.55),hr:P(.76,.55),fl:P(.38,.95),fr:P(.62,.95)}}
+  function openRig(){
+    const cv=ed&&(ed.cut||ed.work);if(!cv){alert('先に画像をえらんでね');return}
+    let ov=document.getElementById('rig74');if(ov)ov.remove();
+    ov=mkOv('rig74','<div style="font-size:19px;font-weight:900;margin:6px 0">手と足の場所をきめよう</div><div style="font-size:12px;color:#d9d3ff;max-width:360px;margin-bottom:6px;line-height:1.6">下のボタンをえらんで、絵の上をタップ。ドラッグで動かせるよ。<br>手＝手のひらの先、足＝足のさき（つま先）が目安。</div><div id="rgChips" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:6px"></div><canvas id="rgCv" style="touch-action:none;border-radius:12px;background:#2a2745;max-width:92vw;max-height:52vh"></canvas><div style="display:flex;gap:8px;margin:10px 0 24px"><button class="mid" id="rgAuto" style="white-space:nowrap">じどう</button><button class="mid" id="rgCancel" style="white-space:nowrap">やめる</button><button class="big" id="rgOk" style="font-size:16px;padding:8px 26px">これでOK</button></div>');
+    ov.classList.remove('hide');ov.style.zIndex=140;ov.style.background='rgba(8,6,24,.97)';ov.style.overflowY='auto';
+    const c=document.getElementById('rgCv'),W=cv.width,H=cv.height;c.width=W;c.height=H;const x=c.getContext('2d');
+    const rig=ed.rc.rig&&okP(ed.rc.rig.hl)?JSON.parse(JSON.stringify(ed.rc.rig)):{};
+    let act=0;const col={hl:'#ffd24a',hr:'#ff9a4a',fl:'#5ad8ff',fr:'#7a8aff'};
+    const chips=document.getElementById('rgChips');
+    const draw=()=>{x.clearRect(0,0,W,H);x.fillStyle='#2a2745';x.fillRect(0,0,W,H);for(let i=0;i<W/16;i++)for(let j=0;j<H/16;j++)if((i+j)%2){x.fillStyle='rgba(255,255,255,.06)';x.fillRect(i*16,j*16,16,16)}
+      x.drawImage(cv,0,0);
+      KEYS.forEach((k,i)=>{const q=rig[k];if(!q)return;const px=q[0]*W,py=q[1]*H,r=Math.max(9,W/34);x.beginPath();x.arc(px,py,r,0,Math.PI*2);x.fillStyle=col[k]+(i===act?'':'bb');x.fill();x.lineWidth=2.5;x.strokeStyle='#fff';x.stroke();
+        x.fillStyle='#000';x.font='bold '+Math.round(r*1.1)+'px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(k[1]==='l'?'左':'右',px,py+1)});
+      chips.innerHTML='';KEYS.forEach((k,i)=>{const b=document.createElement('button');b.style.cssText='padding:6px 10px;border-radius:12px;font-size:12px;font-weight:800;color:#fff;background:'+(i===act?col[k]:'#3b3566')+';'+(i===act?'color:#000;':'')+'border:2px solid '+(rig[k]?col[k]:'transparent');b.textContent=(rig[k]?'✓ ':'')+NAMES[k];b.onclick=()=>{act=i;draw()};chips.appendChild(b)})};
+    let drag=-1;
+    const pos=e=>{const r=c.getBoundingClientRect();return[clamp_((e.clientX-r.left)/r.width,0,1),clamp_((e.clientY-r.top)/r.height,0,1)]};
+    c.onpointerdown=e=>{e.preventDefault();const q=pos(e);let best=-1,bd=1e9;KEYS.forEach((k,i)=>{if(rig[k]){const d=Math.hypot((rig[k][0]-q[0])*W,(rig[k][1]-q[1])*H);if(d<bd){bd=d;best=i}}});
+      if(best>=0&&bd<Math.max(26,W/12)){drag=best;act=best}else{drag=act;rig[KEYS[act]]=q;const nx=KEYS.findIndex(k=>!rig[k]);if(nx>=0)act=nx}
+      try{c.setPointerCapture(e.pointerId)}catch(_){}draw()};
+    c.onpointermove=e=>{if(drag<0)return;rig[KEYS[drag]]=pos(e);draw()};
+    c.onpointerup=c.onpointercancel=()=>{drag=-1};
+    document.getElementById('rgAuto').onclick=()=>{Object.assign(rig,autoPts(cv));draw()};
+    document.getElementById('rgCancel').onclick=()=>ov.remove();
+    document.getElementById('rgOk').onclick=()=>{if(!KEYS.every(k=>rig[k])){alert('手と足を4つともおいてね（「じどう」でまかせてもOK）');return}ed.rc.rig=rig;ed.dirty=true;ov.remove();try{buildEditor()}catch(_){}};
+    if(!KEYS.some(k=>rig[k]))Object.assign(rig,autoPts(cv));
+    draw();
+  }
+  window.openRig74=openRig;
+  const _be=buildEditor;buildEditor=function(){_be();try{
+    const rc=ed.rc,box=$('ceBody');if(!box||rc.builtin)return;
+    const w=document.createElement('div');w.style.cssText='width:100%;max-width:380px;margin:8px 0;text-align:left';
+    const set=rc.rig&&okP(rc.rig.hl);
+    w.innerHTML='<div style="font-size:12px;color:#ffe27a;margin-bottom:3px">手と足の場所（うごきがリアルになるよ）</div><div style="font-size:11px;color:#c9c3e6;margin-bottom:5px;line-height:1.5">'+(set?'設定ずみ：歩き・こうげき・ガード・回避で、手と足がうごきます。':'まだ未設定：決めると、腕がふれて脚もそのキャラの形に合わせて動きます。')+'</div>';
+    const b=document.createElement('button');b.className='mid';b.style.cssText='width:100%;white-space:nowrap';b.textContent=set?'✋🦶 手足の場所をなおす':'✋🦶 手足の場所をきめる';b.onclick=openRig;w.appendChild(b);
+    if(set){const r=document.createElement('button');r.className='mid';r.style.cssText='width:100%;margin-top:6px;opacity:.8';r.textContent='設定をけす';r.onclick=()=>{delete ed.rc.rig;buildEditor()};w.appendChild(r)}
+    box.appendChild(w)}catch(e){}};
+})();
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
@@ -6760,13 +6848,14 @@ function drawSpriteBody(p){
     +swk*(Math.sin(ph-h*2.3)*6.4*h+sph*2.6*h*h)
     +(1-swk)*Math.sin(t*1.7-h*1.6)*3.2*h
     +hurt*-5*h*h-lagX*(sx<0?-1:1)*10*Math.pow(h,1.5);
-  const ox=flat?(h=>0):(h=>ox0(h)*.6);
+  const ox=flat?(h=>ox0(h)*.26):(h=>ox0(h)*.6);
   const bob=J.hy+40.5;
   const hover=full?0:(9+Math.sin(t*2.1)*2.2+(mvk?Math.abs(Math.cos(p.wp))*1.5:0));
   const bottom=(full?(s.footpad||0):0)-hover-(mvk&&full?Math.abs(Math.cos(p.wp))*1.6:0);
   const sY=(v=>1-(1-v)*.6)(Math.max(.74,1-bob/(H*.85)+Math.max(-.07,Math.min(.07,st.av*.0007))+Math.sin(t*2.2)*.008
     +swk*Math.cos(ph*2)*.035-drp*.014+act*.03-hurt*.06-Math.abs(lagX)*.035+lagY*.012));
-  const cx=(s.cx||.5)*W,N=flat?((full&&!sprLow)?10:1):(sprLow?10:(G.P.length>2?14:20)),sp=flat?.4:(s.split||.46);
+  const RG74=(flat&&!gh&&window.rigOf74)?rigOf74(p,s):null;
+  const cx=(s.cx||.5)*W,N=flat?((full&&!sprLow)?10:1):(sprLow?10:(G.P.length>2?14:20)),sp=flat?(RG74&&RG74.sp||.4):(s.split||.46),SPF=RG74?RG74.sf:.5;
   g.save();g.translate(p.x,p.y-z-J.lz);
   if(p.down)g.rotate(1.45*p.face);
   else{
@@ -6794,10 +6883,10 @@ function drawSpriteBody(p){
       }else g.drawImage(S,0,sy0,iw,sh,dx,dy,W,dh);
     }
     if(legMode&&q0>=0){ // 脚：ひざ・足がなめらかにふれる（腰を支点に左右半分を回転）
-      const sy0=Math.max(0,Math.round(q0*ih/N)-1),dyT=yb[q0]-.6,dH=yb[N]-yb[q0]+1.2,hs=ih-sy0,half=W/2,ov=1.5*W/iw,dxl=-cx+ox(sp)+ex,pvx=dxl+half,a1=sph*(flat?.2:.3)*swk;
+      const sy0=Math.max(0,Math.round(q0*ih/N)-1),dyT=yb[q0]-.6,dH=yb[N]-yb[q0]+1.2,hs=ih-sy0,half=W*SPF,ov=1.5*W/iw,dxl=-cx+ox(sp)+ex,pvx=dxl+half,a1=sph*(flat?.2:.3)*swk;
       for(let sd=0;sd<2;sd++){const sg=sd?-1:1,ang=a1*sg,lf=Math.max(0,sg*sph)*5*swk;
         g.save();g.translate(pvx,dyT-lf);g.rotate(ang);g.translate(-pvx,-dyT);
-        if(!sd)g.drawImage(S,0,sy0,iw/2+1.5,hs,dxl,dyT,half+ov,dH);else g.drawImage(S,iw/2-1.5,sy0,iw/2+1.5,hs,dxl+half-ov,dyT,half+ov,dH);
+        if(!sd)g.drawImage(S,0,sy0,iw*SPF+1.5,hs,dxl,dyT,half+ov,dH);else g.drawImage(S,iw*SPF-1.5,sy0,iw*(1-SPF)+1.5,hs,dxl+half-ov,dyT,W-half+ov,dH);
         g.restore()}}
   };
   if(!sprLow&&G.P.length<=2&&!gh&&!fl&&!p.down){ // 床に落ちる影（光源は左上・画面上で向き固定）
@@ -6807,6 +6896,7 @@ function drawSpriteBody(p){
   }
   if(ext&&!p.down){g.globalAlpha=.72;mesh(ext,2.0,1.0);g.globalAlpha=1}
   mesh(src,0,0);
+  if(RG74&&!p.down&&!fl)try{rigArms74(p,s,src,RG74,{cx,W,H,iw,ih,bottom,sY,swk,ph})}catch(_){}
   /* イラスト上の位置に光や刀の輝きを重ねる */
   if(!gh){
     const P=(fx,fy)=>[-cx+fx*W+ox(1-fy),bottom-H*sY*(1-fy)];
