@@ -3896,7 +3896,8 @@ const _dE48=drawEnemy;drawEnemy=function(e){if(!e.orb)return _dE48(e);const t=G.
       document.querySelectorAll('.ov').forEach(ov=>{
         if(ov.offsetParent===null&&getComputedStyle(ov).position!=='fixed')return;
         if(getComputedStyle(ov).display==='none')return;
-        const kids=[...ov.children].filter(c=>c.tagName!=='CANVAS'&&getComputedStyle(c).position!=='fixed'&&getComputedStyle(c).position!=='absolute');
+        const bigPc=innerWidth>=760&&innerHeight>=521;
+        const kids=[...ov.children].flatMap(c=>(c.id==='lobWrap'&&!bigPc)?[...c.children]:(c.id==='lobWrap'?[]:[c])).filter(c=>c.tagName!=='CANVAS'&&getComputedStyle(c).position!=='fixed'&&getComputedStyle(c).position!=='absolute');
         const SHR=['title','pause','result'].indexOf(ov.id)>=0;
         const BIG=['quest','roster','chal','dex','cedit','gacha','missions','bossSel','workshop','info','set','help'].indexOf(ov.id)>=0;
         const zb=BIG?Math.max(1.12,Math.min(1.9,innerWidth/520)):1;
@@ -5603,6 +5604,53 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
     g.save();g.translate(p.x,cy-lift);g.rotate(rot);g.scale(sx,sy);g.translate(-p.x,-cy);
     try{_d(p)}finally{g.restore()}
   };
+})();
+
+// ===== v87: PC・タブレットでホーム画面を大きく（スマホと同じレイアウトを画面に合わせて拡大） =====
+(function(){
+  const css=document.createElement('style');css.id='home87';css.textContent=`
+  #lobWrap{display:contents}
+  #btnVs78{grid-column:1/-1!important;flex-direction:row!important;writing-mode:horizontal-tb!important;min-height:46px}
+  @media (min-width:760px) and (min-height:521px){
+    #title{align-items:center!important;justify-content:center!important;padding:0!important;overflow:hidden!important}
+    #lobWrap{display:flex!important;width:430px;flex:none;flex-direction:column;align-items:center;transform:scale(var(--hs,1));transform-origin:center center;padding:8px 10px;box-sizing:border-box}
+    #title{background-size:100% auto,cover,auto!important;background-position:top,center top,0 0!important}
+    #lobWrap>*{max-width:100%}
+    #lobGrid #btnRoster,#lobGrid #btnGacha,#lobGrid #btnChal,#lobGrid #btnMiss{grid-column:span 2!important}
+    #title .how{display:none!important}
+  }
+  @media (min-width:900px) and (min-height:521px) and (min-aspect-ratio:13/10){
+    #lobWrap{width:880px!important;display:grid!important;grid-template-columns:430px 430px;column-gap:20px;align-items:start;justify-content:center}
+    #lobTop{grid-column:1/3;grid-row:1}
+    #lobStage{grid-column:1;grid-row:2}#lobParty{grid-column:1;grid-row:3}#lobStat{grid-column:1;grid-row:4}
+    #lobGrid{grid-column:2;grid-row:2/6;width:100%!important;max-width:none!important}
+    #lobWrap>#lobStage{height:300px!important}
+  }`;document.head.appendChild(css);
+  let wrap=null;
+  function ensure(){
+    const t=document.getElementById('title');if(!t)return null;
+    if(wrap&&wrap.parentNode===t)return wrap;
+    wrap=document.getElementById('lobWrap');
+    if(!wrap){wrap=document.createElement('div');wrap.id='lobWrap';
+      const kids=[...t.children].filter(c=>c.id!=='sak66'&&getComputedStyle(c).position!=='fixed'&&getComputedStyle(c).position!=='absolute');
+      kids.forEach(c=>wrap.appendChild(c));t.appendChild(wrap)}
+    return wrap}
+  let busy=false;
+  function scale(){
+    if(busy)return;busy=true;
+    try{
+      const t=document.getElementById('title');if(!t||t.classList.contains('hide')){return}
+      const w=ensure();if(!w)return;
+      const big=innerWidth>=760&&innerHeight>=521;
+      if(!big){w.style.removeProperty('--hs');return}
+      w.style.setProperty('--hs','1');
+      const two=matchMedia('(min-width:900px) and (min-aspect-ratio:13/10)').matches;const H=w.offsetHeight||800,Wd=two?880:430;
+      const s=Math.max(.55,Math.min((innerHeight-16)/H,(innerWidth-16)/Wd,2.4));
+      w.style.setProperty('--hs',s.toFixed(3));
+    }catch(_){}finally{busy=false}}
+  window.addEventListener('resize',()=>setTimeout(scale,50));
+  window.addEventListener('load',()=>{scale();setTimeout(scale,800);setTimeout(scale,2500);
+    try{const t=document.getElementById('title');if(t){new MutationObserver(()=>{clearTimeout(window.__hs87);window.__hs87=setTimeout(scale,120)}).observe(t,{childList:true,subtree:true,attributes:true,attributeFilter:['class']})}}catch(_){}});
 })();
 
 function makeBG(){
