@@ -5289,7 +5289,7 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
       const hd=i?r.hr:r.hl,front=hd[0]>=cu?1:0;
       const hx=hd[0]*c.iw,hy=hd[1]*c.ih,sxp=hx+(cu*c.iw-hx)*.4,syp=Math.max(.1*c.ih,hy-.24*c.ih);
       const dx=hx-sxp,dy=hy-syp,L=Math.hypot(dx,dy);if(L<8)continue;
-      let a=Math.sin(ph+(front?0:Math.PI))*.3*swk+(1-swk)*Math.sin(t*1.8+(front?0:2.1))*.06;
+      let a=Math.sin(ph+(front?0:Math.PI))*.62*swk+(1-swk)*Math.sin(t*1.8+(front?0:2.1))*.06;
       a+=front?-.9*atk:.4*atk;           // 攻撃：前の手がふりぬく
       a+=-(front?.8:.55)*gu;             // ガード：手をあげる
       a+=.7*dg;                           // 回避：手がうしろへ流れる
@@ -5651,6 +5651,127 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
   window.addEventListener('resize',()=>setTimeout(scale,50));
   window.addEventListener('load',()=>{scale();setTimeout(scale,800);setTimeout(scale,2500);
     try{const t=document.getElementById('title');if(t){new MutationObserver(()=>{clearTimeout(window.__hs87);window.__hs87=setTimeout(scale,120)}).observe(t,{childList:true,subtree:true,attributes:true,attributeFilter:['class']})}}catch(_){}});
+})();
+
+// ===== v88: 保存ずみキャラの切り抜き直し（けしゴム/もどす）+ 手足の振り強化 =====
+(function(){
+  const mini='padding:5px 10px;font-size:13px;border-radius:10px;border:2px solid transparent;background:#2b2850;color:#fff;margin:2px';
+  const _be=buildEditor;
+  buildEditor=function(){
+    _be();
+    try{
+      const rc=ed&&ed.rc;if(!rc||rc.builtin||rc.bundled||!ed.final||!ed.work)return;
+      const pw=document.getElementById('edPrev');if(!pw)return;
+      if(!ed.base){ed.base=ed.work;const c=document.createElement('canvas');c.width=ed.work.width;c.height=ed.work.height;c.getContext('2d').drawImage(ed.work,0,0);ed.cut=c;ed.tool=ed.tool||'face'}
+      const box=document.createElement('div');box.style.cssText='width:100%;max-width:340px;margin:6px auto;text-align:center';
+      box.innerHTML='<div style="font-size:12px;color:#ffe27a;line-height:1.6;margin-bottom:4px">切りぬきをなおす：<b style="color:#ff8a9a">けしゴム</b>で背景やゴミをなぞって消す、<b style="color:#6dffa0">もどす</b>で消しすぎを戻せるよ</div>';
+      const row=document.createElement('div');
+      const tb=(label,t,col)=>{const b=document.createElement('button');b.style.cssText=mini+';border-color:'+(ed.tool===t?col:'transparent');b.textContent=label;b.onclick=()=>{ed.tool=t;buildEditor()};row.appendChild(b)};
+      tb('🙂 顔の位置','face','#ffe27a');tb('🧽 けしゴム','erase','#ff8a9a');tb('↩ もどす','restore','#6dffa0');box.appendChild(row);
+      const br=document.createElement('div');br.style.cssText='display:flex;align-items:center;gap:6px;justify-content:center;font-size:12px;color:#c9c3e6;margin-top:3px';
+      br.innerHTML='<span>ペンの太さ</span>';const sl=document.createElement('input');sl.type='range';sl.min=3;sl.max=40;sl.value=ed.br88||14;sl.style.width='120px';sl.oninput=()=>{ed.br88=+sl.value};br.appendChild(sl);box.appendChild(br);
+      const r2=document.createElement('div');
+      const au=document.createElement('button');au.style.cssText=mini;au.textContent='✨ ふちの背景をじどうで消す';au.onclick=()=>{try{edge88();}catch(e){}};
+      const rs=document.createElement('button');rs.style.cssText=mini;rs.textContent='ぜんぶ元にもどす';rs.onclick=()=>{ed.cut.getContext('2d').clearRect(0,0,ed.cut.width,ed.cut.height);ed.cut.getContext('2d').drawImage(ed.base,0,0);ed.erased=0;drawEdPrev()};
+      r2.appendChild(au);r2.appendChild(rs);box.appendChild(r2);
+      pw.parentNode.insertBefore(box,pw.nextSibling);
+      // チェッカー背景で消えた所が分かるように
+      pw.style.background='repeating-conic-gradient(#3a3660 0% 25%,#2a2745 0% 50%) 50%/16px 16px';
+      const old=pw.onpointerdown,oldm=pw.onpointermove,oldu=pw.onpointerup;
+      let last=null;
+      const pos=e=>{const r=pw.getBoundingClientRect();return[(e.clientX-r.left)*pw.width/r.width,(e.clientY-r.top)*pw.height/r.height]};
+      const dot=(x,y)=>{const g=ed.cut.getContext('2d'),r=(ed.br88||14)*(pw.width/340)*.6+2;g.save();
+        if(ed.tool==='erase'){g.globalCompositeOperation='destination-out';g.beginPath();g.arc(x,y,r,0,6.3);g.fill();ed.erased=1;ed.dirty=true}
+        else{g.beginPath();g.arc(x,y,r,0,6.3);g.clip();g.globalCompositeOperation='source-over';g.clearRect(x-r,y-r,r*2,r*2);g.drawImage(ed.base,0,0)}
+        g.restore()};
+      const stroke=e=>{const[x,y]=pos(e);if(last){const n=Math.ceil(Math.hypot(x-last[0],y-last[1])/3);for(let k=1;k<=n;k++)dot(last[0]+(x-last[0])*k/n,last[1]+(y-last[1])*k/n)}else dot(x,y);last=[x,y];drawEdPrev()};
+      if(ed.tool!=='face'){
+        pw.onpointerdown=e=>{e.preventDefault();pw.setPointerCapture(e.pointerId);pw._d=1;last=null;stroke(e)};
+        pw.onpointermove=e=>{if(pw._d)stroke(e)};
+        pw.onpointerup=pw.onpointercancel=()=>{pw._d=0;last=null};
+      }
+    }catch(e){console.warn('v88',e)}
+  };
+  const _lf=edLoadFinal;edLoadFinal=function(im){_lf(im);try{buildEditor()}catch(_){}};
+  // ふちから背景っぽい色を広げて消す（既存の自動切りぬきを流用）
+  function edge88(){
+    const W=ed.cut.width,H=ed.cut.height;
+    const r=sprCutRaw(ed.cut,Math.max(W,H));const cut=r.cut||r;
+    const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.drawImage(ed.cut,0,0);
+    g.globalCompositeOperation='destination-in';g.drawImage(cut,0,0,W,H);
+    ed.cut=c;ed.erased=1;ed.dirty=true;drawEdPrev();
+  }
+  // 保存：けしゴムで直した画像を反映
+  const _se=saveEditor;
+  saveEditor=function(){
+    try{if(ed&&ed.final&&ed.erased&&ed.cut&&ed.rc&&!ed.rc.builtin&&!ed.rc.bundled){ed.rc.img=ed.cut.toDataURL('image/png')}}catch(_){}
+    return _se();
+  };
+})();
+
+// ===== v89: モーション追加（わざ構え・走りの前傾・ダッシュ残像・被弾のけぞり・着地・呼吸）と飛び道具の演出強化 =====
+(function(){
+  const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+  // --- わざ・ひっさつの発動を記録 ---
+  const _us=useSkill;useSkill=function(p,k){const r=_us(p,k);if(r){p._sk89={t:0,k:k|0,u:0}}return r};
+  const _eu=execUlt;execUlt=function(p){_eu(p);try{p._sk89={t:0,k:2,u:1}}catch(_){}};
+  const _dp=drawPlayer;
+  drawPlayer=function(p){
+    if(!G||!p.d)return _dp(p);
+    let flat=false;try{const s=SPR[SPR_KEYS[p.i]];flat=!!(s&&s.flat)}catch(_){}
+    if(!flat||p.down)return _dp(p);
+    const dt=1/60,dir=((p.fx!==undefined?p.fx:p.face)||1)>=0?1:-1,t=G.t;
+    let rot=0,lift=0,sx=1,sy=1,ox=0;
+    // 1) 呼吸（止まっているとき）
+    const mv=p.swk||0;
+    if(mv<.3){const b=Math.sin(t*2.4+(p.i||0)*1.7);sy*=1+.012*b;sx*=1-.006*b}
+    // 2) 走りの前傾とはずみ
+    if(mv>.2){rot+=dir*.07*mv;lift+=Math.abs(Math.sin((p.wp||0)))*3.5*mv;sy*=1+.012*Math.sin((p.wp||0)*2)*mv}
+    // 3) ダッシュ：体をのばして前に倒れこむ
+    if(p.dash){rot+=dir*.28;sx*=1.1;sy*=.9;ox+=dir*4;
+      if(!FXL){const pa=g.globalAlpha;for(let k=1;k<=2;k++){g.save();g.globalAlpha=pa*(.3/k);g.translate(-dir*k*12,0);try{_dp(p)}catch(_){}g.restore()}g.globalAlpha=pa}}
+    // 4) わざ・ひっさつの構え：ひいて → 前へ
+    const S=p._sk89;
+    if(S){S.t+=dt;const dur=S.u?.9:.42,u=S.t/dur;
+      if(u>=1)p._sk89=null;else{
+        if(u<.35){const a=u/.35;rot-=dir*.16*a;sy*=1-.07*a;sx*=1+.05*a;ox-=dir*5*a}
+        else{const a=Math.sin(Math.PI*(u-.35)/.65);rot+=dir*(S.k===1?.22:.14)*a;lift+=(S.k===1?-2:14)*a;sy*=S.k===1?1-.1*a:1+.06*a;ox+=dir*7*a}
+        if(S.u){lift+=10*Math.sin(Math.PI*u)}
+      }}
+    // 5) 被弾：のけぞってふるえる
+    if(p.hurtT>0){const h=Math.min(1,p.hurtT*3);rot-=dir*.3*h;sy*=1-.06*h;ox-=dir*5*h}
+    // 6) 回避が終わった直後の着地のつぶれ
+    if(p.dodgeT>0)p._lnd89=1;else if(p._lnd89){p._lnd89=0;p._lt89=.14}
+    if(p._lt89>0){p._lt89-=dt;const a=Math.max(0,p._lt89/.14);sy*=1-.16*a;sx*=1+.1*a}
+    if(!rot&&!lift&&sx===1&&sy===1&&!ox)return _dp(p);
+    const cy=p.y-46;
+    g.save();g.translate(p.x+ox,cy-lift);g.rotate(rot);g.scale(sx,sy);g.translate(-p.x,-cy);
+    try{_dp(p)}finally{g.restore()}
+  };
+  // --- 飛び道具：発射の閃光・彗星の頭・まわるきらめき・当たり判定の目印 ---
+  const _dr=drawPR;
+  drawPR=function(b){
+    _dr(b);
+    try{
+      if(!b._m89){b._m89=1;b._ph=Math.random()*6.3;if(b.team==='p'&&!FXL){try{ring(b.x,b.y-(b.z||0),b.r*2.2,b.col,.22,3);starFlash(b.x,b.y-(b.z||0),b.r*2.4,b.col,.12,Math.random()*3)}catch(_){}}}
+      if(FXL)return;
+      const z=b.z||0,y=b.y-z,a=Math.atan2(b.vy,b.vx),r=b.r,t=G.t;
+      g.save();g.globalCompositeOperation='lighter';
+      if(b.team==='p'){
+        // 進む向きにのびる光の筋
+        const L=r*(b.big?5:3.6);const gr=g.createLinearGradient(b.x,y,b.x-Math.cos(a)*L,y-Math.sin(a)*L*.62);gr.addColorStop(0,'rgba(255,255,255,.75)');gr.addColorStop(1,hexA(b.col,0));
+        g.strokeStyle=gr;g.lineCap='round';g.lineWidth=r*.9;g.beginPath();g.moveTo(b.x,y);g.lineTo(b.x-Math.cos(a)*L,y-Math.sin(a)*L*.62);g.stroke();
+        // まわる小さなきらめき
+        for(let k=0;k<3;k++){const an=t*9+b._ph+k*2.094,rr=r*(1.5+.25*Math.sin(t*7+k));g.fillStyle='rgba(255,255,255,.85)';g.beginPath();g.arc(b.x+Math.cos(an)*rr,y+Math.sin(an)*rr*.7,Math.max(1.2,r*.12),0,6.3);g.fill()}
+        // 十字のグリント
+        g.globalAlpha=.55+.3*Math.sin(t*20+b._ph);g.strokeStyle='#fff';g.lineWidth=1.6;const gl=r*1.9;g.beginPath();g.moveTo(b.x-gl,y);g.lineTo(b.x+gl,y);g.moveTo(b.x,y-gl);g.lineTo(b.x,y+gl);g.stroke();
+      }else{
+        // 敵のたま：ふちが明滅してキケンだとわかる
+        g.globalAlpha=.5+.4*Math.sin(t*14+b._ph);g.strokeStyle=b.col;g.lineWidth=2.4;g.beginPath();g.arc(b.x,y,r*1.55,0,6.3);g.stroke();
+      }
+      g.restore();
+    }catch(_){}
+  };
 })();
 
 function makeBG(){
@@ -7201,8 +7322,8 @@ function drawSpriteBody(p){
       }else g.drawImage(S,0,sy0,iw,sh,dx,dy,W,dh);
     }
     if(legMode&&q0>=0){ // 脚：ひざ・足がなめらかにふれる（腰を支点に左右半分を回転）
-      const sy0=Math.max(0,Math.round(q0*ih/N)-1),dyT=yb[q0]-.6,dH=yb[N]-yb[q0]+1.2,hs=ih-sy0,half=W*SPF,ov=1.5*W/iw,dxl=-cx+ox(sp)+ex,pvx=dxl+half,a1=sph*(flat?.32:.3)*swk;
-      for(let sd=0;sd<2;sd++){const sg=sd?-1:1,ang=a1*sg,lf=Math.max(0,sg*sph)*5*swk;
+      const sy0=Math.max(0,Math.round(q0*ih/N)-1),dyT=yb[q0]-.6,dH=yb[N]-yb[q0]+1.2,hs=ih-sy0,half=W*SPF,ov=1.5*W/iw,dxl=-cx+ox(sp)+ex,pvx=dxl+half,a1=sph*(flat?.5:.3)*swk;
+      for(let sd=0;sd<2;sd++){const sg=sd?-1:1,ang=a1*sg,lf=Math.max(0,sg*sph)*(flat?9:5)*swk;
         g.save();g.translate(pvx,dyT-lf);g.rotate(ang);g.translate(-pvx,-dyT);
         if(!sd)g.drawImage(S,0,sy0,iw*SPF+1.5,hs,dxl,dyT,half+ov,dH);else g.drawImage(S,iw*SPF-1.5,sy0,iw*(1-SPF)+1.5,hs,dxl+half-ov,dyT,W-half+ov,dH);
         g.restore()}}
