@@ -6240,6 +6240,162 @@ drawPlayer=function(p){
   g.save();g.translate(p.x,p.y);g.rotate(sw);g.translate(-p.x,-p.y-hop);_dP100(p);g.restore();
 };
 
+/* ===== v101: やりこみ（ランク・実績・縛りプレイ）＋ リアルな手ごたえ（ヒットストップ・土ぼこり・ばて） ===== */
+const ST101=(()=>{let s={};try{s=JSON.parse(localStorage.getItem('oni_stat101'))||{}}catch(_){}
+  return Object.assign({kills:0,boss:0,skills:0,ults:0,wins:0,s3:0,hw:0,xp:0,cl:{}},s)})();
+function saveST101(){try{localStorage.setItem('oni_stat101',JSON.stringify(ST101))}catch(_){}}
+setInterval(saveST101,3000);
+const rank101=()=>Math.min(50,Math.floor(Math.sqrt(ST101.xp/40))+1);
+const rankXp101=r=>40*(r-1)*(r-1);
+const RTITLE101=['みならい','ルーキー','ハンター','ベテラン','エース','オニバスター','でんせつ'];
+const rtitle101=r=>RTITLE101[Math.min(RTITLE101.length-1,Math.floor((r-1)/8))];
+function addXp101(n){const o=rank101();ST101.xp+=n;const r=rank101();if(r>o){try{toast55('🏆 ランクアップ！ Lv'+r+'「'+rtitle101(r)+'」')}catch(_){}try{snd('clear')}catch(_){}}}
+/* ランクのボーナス：HP・こうげきアップ */
+const _bd101=buildDef;
+buildDef=function(rc){const d=_bd101(rc),r=rank101()-1;if(r>0){d.hp=Math.round(d.hp*(1+.006*r));d.atk=Math.round(d.atk*(1+.005*r))}return d};
+
+/* ---- 数えるところ ---- */
+const _ke101=killE;
+killE=function(e,src){const boss=e&&e.type==='boss',had=G&&G.E.indexOf(e)>=0;const r=_ke101(e,src);
+  if(had){ST101.kills++;if(boss)ST101.boss++;addXp101(boss?25:1);if(boss||e.type==='zun'){G.hs101=Math.max(G.hs101||0,boss?.12:.05)}}return r};
+const _us101=useSkill;
+useSkill=function(p,k){const ok=_us101(p,k);if(ok&&G&&G.P&&G.P.indexOf(p)>=0){ST101.skills++;addXp101(.3)}return ok};
+const _tu101=tryUlt;
+tryUlt=function(p){const u0=p&&p.ult,r=_tu101(p);try{if(p&&u0>=100&&p.ult<u0){ST101.ults++;addXp101(3)}}catch(_){}return r};
+
+/* ---- 縛りプレイ ---- */
+let RUN101=null;const MOD101=(()=>{let m={};try{m=JSON.parse(localStorage.getItem('oni_mod101'))||{}}catch(_){}return Object.assign({hard:0,nh:0},m)})();
+const _sE101=spawnE;
+spawnE=function(type,x,y){const e=_sE101(type,x,y);try{if(RUN101&&RUN101.hard&&e&&!e.ally){e.hp=Math.round(e.hp*1.6);e.maxhp=e.hp}}catch(_){}return e};
+const _hp101=hurtP;
+hurtP=function(p,dmg){if(RUN101&&RUN101.hard)dmg*=1.3;return _hp101(p,dmg)};
+const _ti101=toTitle;toTitle=function(){RUN101=null;return _ti101()};
+new MutationObserver(()=>{
+  const o=document.getElementById('sk97');if(!o||o.querySelector('.mod101'))return;const go=o.querySelector('.go');if(!go)return;
+  const d=document.createElement('div');d.className='mod101';d.style.cssText='width:100%;max-width:440px;margin:8px 0;padding:8px 10px;border:2px dashed #ffb04a;border-radius:12px;background:rgba(255,176,74,.08)';
+  d.innerHTML='<div style="font-weight:900;color:#ffd27a;font-size:14px">🔥 やりこみ縛り（ボーナスコイン）</div><div style="font-size:11px;color:#c9c3e6;margin:2px 0 6px">クリアするとコインがふえるよ。ランクのけいけんちも多め</div>';
+  const mk=(k,t,sub)=>{const b=document.createElement('button');b.style.cssText='display:block;width:100%;text-align:left;margin:4px 0;font:inherit;font-size:13px;padding:8px 10px;border-radius:10px;border:2px solid transparent;background:#2b2850;color:#fff;cursor:pointer';
+    const upd=()=>{b.style.borderColor=MOD101[k]?'#ffe27a':'transparent';b.style.background=MOD101[k]?'#4a3f7a':'#2b2850';b.innerHTML=(MOD101[k]?'✅ ':'⬜ ')+t+'<br><small style="color:#c9c3e6">'+sub+'</small>'};
+    upd();b.onclick=e=>{e.stopPropagation();MOD101[k]=MOD101[k]?0:1;try{localStorage.setItem('oni_mod101',JSON.stringify(MOD101))}catch(_){}upd()};d.appendChild(b)};
+  mk('hard','強敵モード','敵のHP×1.6・受けるダメージ×1.3　→ ボーナス＋50％');
+  mk('nh','かいふく禁止','回復わざ・回復アイテムがきかない　→ ボーナス＋30％');
+  go.addEventListener('click',()=>{RUN101={hard:MOD101.hard,nh:MOD101.nh}},true);
+  o.insertBefore(d,go);
+}).observe(document.body,{childList:true});
+const _up101=update;
+update=function(dt){
+  if(G&&G.P){
+    if(G.hs101>0){G.hs101-=dt;dt*=.07}
+    if(RUN101&&RUN101.nh&&!G._m101){G._m101=1;G.noheal=1}
+    for(const p of G.P){if(p.down)continue;
+      if(p.moving&&!p.leap){p._ds=(p._ds||0)-dt;if(p._ds<=0){p._ds=.2;try{dust(p.x-(p.fx||0)*8,p.y,1,6)}catch(_){}}}
+      if(p.hp<p.maxhp*.3){p._sw=(p._sw||0)-dt;if(p._sw<=0){p._sw=.8;try{glowp(p.x+(Math.random()*14-7),p.y-92,'#bfe8ff',1,30,-1,3)}catch(_){}}}}
+  }
+  return _up101(dt)};
+/* ---- ヒットストップ（強い一撃で一瞬とまる） ---- */
+const _he101=hitE;
+hitE=function(e,dmg,src,kb,stun){const h0=e.hp;const r=_he101(e,dmg,src,kb,stun);
+  try{if(G&&src&&src.d&&h0-e.hp>=src.d.atk*2.4){G.hs101=Math.max(G.hs101||0,e.type==='boss'?.05:.07);shk(.12)}}catch(_){}return r};
+
+/* ---- けっか画面 ---- */
+const _sr101=showResult;
+showResult=function(){
+  const I=G&&G.resInfo,mode=G&&G.mode;let extra='';
+  try{ST101.plays=(ST101.plays||0)+1;
+    if(I&&I.win&&mode==='quest'){ST101.wins++;if(I.stars>=3)ST101.s3++;let xp=40+(I.stars||0)*10;
+      if(RUN101&&(RUN101.hard||RUN101.nh)){const m=(RUN101.hard?.5:0)+(RUN101.nh?.3:0);const bonus=Math.round(120*m);WAL.coin+=bonus;WAL.tot+=bonus;saveWal();ST101.hw++;xp=Math.round(xp*(1+m));
+        extra='<div style="margin-top:8px;color:#ffb04a;font-weight:900">🔥 縛りボーナス！ 🪙+'+bonus+'</div>'}
+      addXp101(xp);extra+='<div style="font-size:12px;color:#c9c3e6">ランク Lv'+rank101()+'「'+rtitle101(rank101())+'」 +'+xp+'EXP</div>'}
+    else if(I&&mode!=='tut')addXp101(8);
+    saveST101()}catch(e){console.warn(e)}
+  RUN101=null;const r=_sr101();
+  if(extra){try{const d=document.createElement('div');d.innerHTML=extra;const R=document.getElementById('result');R.insertBefore(d,R.lastElementChild)}catch(_){}}
+  return r};
+
+/* ---- じっせき ---- */
+const ACH101=(()=>{const L=[];
+  const add=(id,n,get,goals,rw,unit)=>goals.forEach((g,i)=>L.push({id:id+g,n:n.replace('#',g),get,goal:g,rw:rw[i],unit}));
+  add('k','てきを # たい たおす',()=>ST101.kills,[100,500,2000,10000],[60,150,400,1200]);
+  add('b','ボスを # たい たおす',()=>ST101.boss,[1,10,50],[100,300,900]);
+  add('s','わざを # かい つかう',()=>ST101.skills,[50,300,1500],[60,200,600]);
+  add('u','ひっさつを # かい うつ',()=>ST101.ults,[10,50,200],[80,250,700]);
+  add('w','クエストを # かい クリア',()=>ST101.wins,[1,10,50,100],[50,200,600,1200]);
+  add('t','★3クリアを # かい',()=>ST101.s3,[5,30,100],[120,400,1000]);
+  add('h','縛りプレイで # かい クリア',()=>ST101.hw,[1,10,30],[150,500,1200]);
+  add('e','エンドレスで # ウェーブ',()=>best||0,[10,20,30,50],[100,250,600,1500]);
+  add('d','てきずかんを # しゅ うめる',()=>Object.keys(DEX.enemy||{}).length,[10,30,60],[100,300,900]);
+  add('p','わざずかんを # しゅ うめる',()=>Object.keys(DEX.skill||{}).length,[20,60,120],[100,300,900]);
+  add('r','ランク Lv# になる',()=>rank101(),[5,10,20,35,50],[60,150,400,800,2000]);
+  return L})();
+const claimable101=()=>ACH101.filter(a=>!ST101.cl[a.id]&&a.get()>=a.goal);
+function openAch101(){
+  let o=document.getElementById('ach101');if(!o){o=mkOv('ach101','');}
+  const r=rank101(),lo=rankXp101(r),hi=rankXp101(r+1),pc=r>=50?100:Math.round((ST101.xp-lo)/(hi-lo)*100);
+  const cl=claimable101();
+  let h='<div style="font-size:22px;font-weight:900;margin:6px 0">🏆 やりこみ</div>'
+   +'<div style="width:100%;max-width:420px;background:rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;box-sizing:border-box"><div style="font-size:18px;font-weight:900;color:#ffe27a">ランク Lv'+r+'「'+rtitle101(r)+'」</div>'
+   +'<div style="height:10px;background:#2a2550;border-radius:6px;overflow:hidden;margin:6px 0"><div style="width:'+pc+'%;height:100%;background:linear-gradient(90deg,#ffb04a,#ffe27a)"></div></div>'
+   +'<div style="font-size:12px;color:#c9c3e6">ぜんいんのHP +'+(r-1)*.6+'％・こうげき +'+(r-1)*.5+'％（ランクがあがるともっと強く！）</div></div>'
+   +'<div style="width:100%;max-width:420px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:8px 0;font-size:11px;color:#dcd6f5"><div>たおした敵<br><b style="font-size:15px;color:#fff">'+ST101.kills+'</b></div><div>ボス<br><b style="font-size:15px;color:#fff">'+ST101.boss+'</b></div><div>クリア<br><b style="font-size:15px;color:#fff">'+ST101.wins+'</b></div></div>';
+  if(cl.length)h+='<button id="ach101all" style="width:100%;max-width:420px;font:inherit;font-weight:900;font-size:15px;padding:10px;border-radius:12px;border:2px solid #ffe27a;background:linear-gradient(135deg,#ff9a3a,#e0511f);color:#fff;margin-bottom:8px">🎁 ぜんぶ受けとる（'+cl.length+'こ）</button>';
+  h+='<div id="ach101L" style="width:100%;max-width:420px"></div><button class="big" id="ach101x" style="font-size:18px;padding:10px 40px;margin:12px 0 20px">もどる</button>';
+  o.innerHTML=h;const L=o.querySelector('#ach101L');
+  ACH101.slice().sort((a,b)=>(ST101.cl[a.id]?1:0)-(ST101.cl[b.id]?1:0)||(b.get()>=b.goal)-(a.get()>=a.goal)).forEach(a=>{
+    const v=Math.min(a.goal,a.get()),done=v>=a.goal,got=!!ST101.cl[a.id];
+    const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;background:rgba(255,255,255,'+(got?.03:.08)+');border-radius:12px;padding:8px 10px;margin:5px 0;text-align:left;opacity:'+(got?.5:1);
+    row.innerHTML='<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:14px">'+a.n+'</div><div style="height:6px;background:#2a2550;border-radius:4px;overflow:hidden;margin:4px 0"><div style="width:'+Math.round(v/a.goal*100)+'%;height:100%;background:'+(done?'#7dffa0':'#8a7bd8')+'"></div></div><div style="font-size:11px;color:#c9c3e6">'+v+' / '+a.goal+'</div></div>';
+    const b=document.createElement('button');b.style.cssText='font:inherit;font-weight:900;font-size:12px;padding:8px 10px;border-radius:10px;border:0;min-width:74px;color:#fff;background:'+(got?'#444':done?'linear-gradient(135deg,#ff9a3a,#e0511f)':'#333');
+    b.textContent=got?'受取ずみ':'🪙 '+a.rw;b.disabled=got||!done;b.onclick=()=>{ST101.cl[a.id]=1;WAL.coin+=a.rw;WAL.tot+=a.rw;saveWal();saveST101();try{snd('clear')}catch(_){}openAch101()};row.appendChild(b);L.appendChild(row)});
+  const all=o.querySelector('#ach101all');if(all)all.onclick=()=>{let s=0;for(const a of claimable101()){ST101.cl[a.id]=1;s+=a.rw}WAL.coin+=s;WAL.tot+=s;saveWal();saveST101();try{toast55('🪙 +'+s)}catch(_){}openAch101()};
+  o.querySelector('#ach101x').onclick=()=>{o.classList.add('hide');document.getElementById('title').classList.remove('hide')};
+  document.getElementById('title').classList.add('hide');o.classList.remove('hide');
+}
+(function(){
+  const css=document.createElement('style');css.textContent='@media (min-width:760px) and (min-height:521px){#lobGrid #btnAch101{grid-column:span 2!important}}';document.head.appendChild(css);
+  setInterval(()=>{const gr=document.getElementById('lobGrid');if(!gr)return;
+    let b=document.getElementById('btnAch101');
+    if(!b){b=document.createElement('button');b.id='btnAch101';b.className='mid';b.innerHTML='🏆 やりこみ<small>ランク・じっせき</small><span class="bdg" style="display:none">!</span>';gr.insertBefore(b,gr.children[4]||null);b.onclick=openAch101}
+    const bd=b.querySelector('.bdg');if(bd)bd.style.display=claimable101().length?'block':'none'},1200);
+})();
+
+/* ===== v102: 慣性ばね（ふんばり・のけぞり・止まったときのゆれ戻し）＋ 息切れ ===== */
+function spring102(o,x,y,vx,vy,spd,t){
+  const dt=t-(o._t102===undefined?t:o._t102);o._t102=t;
+  const S=o._s102||(o._s102={k:0,kv:0,q:0,qv:0,pvx:vx,pvy:vy,run:0,pant:0});
+  if(dt<=0||dt>.1){S.pvx=vx;S.pvy=vy;return S}
+  const ax=(vx-S.pvx)/dt,ay=(vy-S.pvy)/dt,sp=Math.max(60,spd),sc=sp*7;
+  S.pvx=vx;S.pvy=vy;
+  const tk=Math.max(-1,Math.min(1,-ax/sc))*.2+Math.max(-1,Math.min(1,vx/(sp*1.3)))*-.07;
+  const tq=Math.max(-1,Math.min(1,Math.abs(ay)/sc))*.07-Math.max(-1,Math.min(1,ay/sc))*.03;
+  const n=Math.max(1,Math.ceil(dt/.016)),h=dt/n;
+  for(let i=0;i<n;i++){S.kv+=((tk-S.k)*110-S.kv*9)*h;S.k+=S.kv*h;S.qv+=((tq-S.q)*140-S.qv*11)*h;S.q+=S.qv*h}
+  const mv=Math.hypot(vx,vy)/sp;
+  if(mv>.75)S.run=Math.min(3,S.run+dt);else if(mv<.1)S.run=Math.max(0,S.run-dt*.5);
+  if(mv<.1&&S.run>1.5)S.pant=Math.min(3,S.pant+dt*2);else S.pant=Math.max(0,S.pant-dt*.8);
+  return S;
+}
+function apply102(S,x,y,t,big){
+  const pa=Math.min(1,S.pant/2);
+  const br=pa?Math.sin(t*16)*.022*pa:0;
+  g.translate(x,y);g.transform(1,0,-S.k*(big?.7:1),1,0,0);g.scale(1+S.q*.5-br*.5,1-S.q+br);g.translate(-x,-y);
+}
+const _dP102=drawPlayer;
+drawPlayer=function(p){
+  if(!G||p.down||!p.d)return _dP102(p);
+  const S=spring102(p,p.x,p.y,p.vx||0,p.vy||0,p.d.spd||150,G.t);
+  g.save();apply102(S,p.x,p.y,G.t,0);_dP102(p);g.restore();
+};
+const _dE102=drawEnemy;
+drawEnemy=function(e){
+  if(!G||e.dead!==undefined)return _dE102(e);
+  const t=G.t,dt=t-(e._t102===undefined?t:e._t102);
+  let vx=0,vy=0;if(dt>0&&dt<.1&&e._px!==undefined){vx=(e.x-e._px)/dt;vy=(e.y-e._py)/dt}
+  e._px=e.x;e._py=e.y;
+  const S=spring102(e,e.x,e.y,vx,vy,Math.max(80,(EN[e.type]&&EN[e.type].spd)||90),t);
+  const bs=e.type==='boss'?.5:1;
+  g.save();apply102(S,e.x,e.y,t,e.r>40||e.type==='boss');_dE102(e);g.restore();
+};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
