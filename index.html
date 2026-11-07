@@ -3593,7 +3593,7 @@ const _dP40=drawPlayer;drawPlayer=function(p){
   if(p._skid>0){const u=p._skid/.3;rot-= (p.face||1)*.18*u;sy=1-.04*u;sx=1+.05*u}
   if(p._start>0){const u=p._start/.24;rot+=(p.face||1)*.16*u;sy=1+.03*u}
   if(p._fid){const f=p._fid;f.t+=dt;const u=f.t/f.d;if(u>=1)p._fid=null;else{const s=Math.sin(Math.PI*u);if(f.k===0){dy=-s*14;sy=1+.04*s}else if(f.k===1){sy=1+.07*s;sx=1-.04*s}else{rot+=Math.sin(u*TAU)*.07}}}
-  let roll=0;if(p.dodgeT>0){const u=Math.min(1,Math.max(0,1-p.dodgeT/.34));roll=u*TAU*(p.face||1)}
+  let roll=0;if(p.dodgeT>0){const u=Math.min(1,Math.max(0,1-p.dodgeT/.34));roll=0}
   if(!rot&&sx===1&&sy===1&&!dy&&!roll)return _dP40(p);
   g.save();g.translate(p.x,p.y+dy);if(roll)g.translate(0,-42);g.rotate(rot+roll);if(roll)g.translate(0,42);g.scale(sx,sy);g.translate(-p.x,-p.y);
   try{_dP40(p)}finally{g.restore()}};
@@ -6395,6 +6395,41 @@ drawEnemy=function(e){
   const bs=e.type==='boss'?.5:1;
   g.save();apply102(S,e.x,e.y,t,e.r>40||e.type==='boss');_dE102(e);g.restore();
 };
+
+/* ===== v103: 回避モーション（ひねり→低くダッシュ→ふみとまり）＋ 通常こうげきの足さばき・フィニッシュ ===== */
+(function(){
+  const _dp=drawPlayer;const ease=u=>u*u*(3-2*u),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  drawPlayer=function(p){
+    if(!G||!p||p.down||!p.d)return _dp(p);
+    /* --- 通常こうげきの検出：足さばき・フィニッシュ --- */
+    const pa=p._pa103===undefined?0:p._pa103;
+    if(p.atkT>pa+.02&&p.swDur>0&&!p.leap&&!p.dash){
+      const big=(p.combo||1)===3,rng=p.d.type==='range';
+      if(!rng){
+        if(!(p.lg&&p.lg.t>0)){const k=big?230:150;p.lg={t:big?.16:.11,vx:(p.fx||1)*k,vy:(p.fy||0)*k*.6}}
+        try{dust(p.x-(p.fx||1)*8,p.y,big?4:2,7)}catch(_){}
+        if(big){const dl=Math.max(.1,p.swDur*.55);setTimeout(()=>{try{if(G&&!p.down){ring(p.x+(p.fx||1)*30,p.y+2,56,'#ffffff',.3,2);dust(p.x+(p.fx||1)*30,p.y,5,9);shk(.14)}}catch(_){}},dl*1000)}
+      }else{try{sparks(p.x+(p.fx||1)*30,p.y-46,p.d.col||'#fff',3,150,Math.atan2(p.fy||0,p.fx||1),.5)}catch(_){}}
+    }
+    p._pa103=p.atkT;
+    /* --- かいひ --- */
+    if(p.dodgeT>0&&p.dg){
+      const u=clamp(1-p.dodgeT/.34,0,1),sgn=(p.dg.vx>=0?1:-1),ver=Math.abs(p.dg.vy)>Math.abs(p.dg.vx)*1.4;
+      let rot=0,sx=1,sy=1,oy=0;
+      if(u<.18){const k=ease(u/.18);rot=sgn*.12*k;sy=1-.14*k;sx=1+.1*k}              /* ぐっとしずむ */
+      else if(u<.7){const k=Math.sin(Math.PI*(u-.18)/.52);rot=sgn*(ver?.1:.5)*(.55+.45*k);sy=.84-.08*k;sx=1.14+.08*k;oy=6*k}  /* 低くすべる */
+      else{const q=(u-.7)/.3;rot=sgn*.45*(1-ease(q))*(1-q*.3);sy=.9+.14*Math.sin(Math.PI*q)+.1*q*(1-q);sx=1.08-.08*q}                /* ふみとまり */
+      if(u>.66&&!p._dl103){p._dl103=1;try{dust(p.x,p.y,5,9);ring(p.x,p.y+2,36,'#cfe8ff',.2,2)}catch(_){}}
+      if(u<.5)p._dl103=0;
+      const cy=p.y-6;
+      g.save();g.translate(p.x,cy+oy);g.rotate(rot);g.scale(sx,sy);g.translate(-p.x,-cy);
+      try{_dp(p)}finally{g.restore()}
+      return;
+    }
+    p._dl103=0;
+    return _dp(p);
+  };
+})();
 
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
