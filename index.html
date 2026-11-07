@@ -6877,6 +6877,24 @@ drawEnemy=function(e){
     if(rg)spr106('eGhost',e.x,e.y+6,r*3.6,{ay:.92,al:.3+.12*Math.sin(G.t*9),add:false})}catch(_){}
 };
 
+/* ===== v112: 敵の動き（歩くときのはずみ・こうげき瞬間の踏みこみのびる動き） ===== */
+const _de112=drawEnemy;
+drawEnemy=function(e){
+  if(!G||e.dead!==undefined||e.hp<=0||e.stun>0)return _de112(e);
+  const t=G.t,dt=Math.min(.05,Math.max(0,t-(e._t112===undefined?t:e._t112)));e._t112=t;
+  const wind=e.wind>0||e.st==='cwind'||e.st==='swind';
+  if(e._pw112&&!wind)e._sk112=.28;e._pw112=wind;e._sk112=Math.max(0,(e._sk112||0)-dt);
+  const mv=dt>0&&e._px112!==undefined?Math.hypot(e.x-e._px112,e.y-e._py112)/dt:0;e._px112=e.x;e._py112=e.y;
+  const big=e.type==='boss'||(e.r||24)>40,k=Math.min(1,mv/(big?90:140));
+  const hop=k>.1?Math.abs(Math.sin(t*(big?5:9)+(e.x*.01)))*(big?2.5:4)*k:0,sq=k>.1?Math.sin(t*(big?10:18)+(e.x*.01))*.03*k:0;
+  let lx=0,sx=1,sy=1;
+  if(e._sk112>0){const u=e._sk112/.28,s=Math.sin(Math.PI*(1-u));let tx=0;try{let tg=G.L,bd=1e9;for(const p of G.P){if(p.down)continue;const d=Math.hypot(p.x-e.x,p.y-e.y);if(d<bd){bd=d;tg=p}}tx=tg.x>=e.x?1:-1}catch(_){}
+    lx=tx*s*(big?10:16);sx=1+.1*s;sy=1-.07*s;}
+  if(!hop&&!sq&&!lx)return _de112(e);
+  g.save();g.translate(e.x+lx,e.y);g.scale(sx*(1+sq),sy*(1-sq));g.translate(-e.x,-e.y-hop);
+  try{_de112(e)}finally{g.restore()}
+};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
