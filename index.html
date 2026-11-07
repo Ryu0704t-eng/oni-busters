@@ -5286,10 +5286,11 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
     const gu=p._g72||0,dg=p.dodgeT>0?Math.sin(clamp_(1-p.dodgeT/.34,0,1)*Math.PI):0,hurt=p.hurtT>0?Math.min(1,p.hurtT*3):0;
     const cu=(r.fl[0]+r.fr[0])/2;
     for(let i=0;i<2;i++){
+      if(window.LK98&&LK98.arm===0)continue;
       const hd=i?r.hr:r.hl,front=hd[0]>=cu?1:0;
       const hx=hd[0]*c.iw,hy=hd[1]*c.ih,sxp=hx+(cu*c.iw-hx)*.4,syp=Math.max(.1*c.ih,hy-.24*c.ih);
       const dx=hx-sxp,dy=hy-syp,L=Math.hypot(dx,dy);if(L<8)continue;
-      let a=Math.sin(ph+(front?0:Math.PI))*.62*swk+(1-swk)*Math.sin(t*1.8+(front?0:2.1))*.06;
+      let a=(Math.sin(ph+(front?0:Math.PI))*.62*swk+(1-swk)*Math.sin(t*1.8+(front?0:2.1))*.06)*(window.LK98?LK98.arm:1);
       a+=front?-.9*atk:.4*atk;           // 攻撃：前の手がふりぬく
       a+=-(front?.8:.55)*gu;             // ガード：手をあげる
       a+=.7*dg;                           // 回避：手がうしろへ流れる
@@ -5960,6 +5961,101 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
       try{_dp(p)}finally{g.restore()}
     }catch(e){return _dp(p)}
   };
+})();
+
+// ===== v97: 出撃じゅんび（編成・ソロ選択・キャラごとにガード/回避を選ぶ）=====
+(function(){
+  let DS={};try{DS=JSON.parse(localStorage.getItem('oni_defsel97')||'{}')}catch(_){}
+  const saveDS=()=>{try{localStorage.setItem('oni_defsel97',JSON.stringify(DS))}catch(_){}};
+  const _bd=buildDef;buildDef=function(rc){const d=_bd(rc);try{if(DS[rc.id]==='guard'||DS[rc.id]==='dodge')d.defk=DS[rc.id]}catch(_){}return d};
+  const defOf=rc=>DS[rc.id]||DEFK[rc.arch]||'dodge';
+  const css=document.createElement('style');css.textContent=`
+  #sk97{position:fixed;inset:0;z-index:60;background:#0e0a24;display:flex;flex-direction:column;align-items:center;overflow:auto;padding:14px 12px 24px;box-sizing:border-box;color:#fff;font-family:inherit}
+  #sk97 h2{margin:6px 0 2px;font-size:22px;color:#ffe27a}#sk97 .sub{font-size:12px;color:#c9c3e6;margin-bottom:8px;text-align:center;line-height:1.5}
+  #sk97 .box{width:100%;max-width:440px}
+  #sk97 .slot{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.15);border-radius:14px;padding:8px 10px;margin:6px 0}
+  #sk97 .slot.solo{border-color:#ffe27a;background:rgba(255,226,122,.12)}#sk97 .slot.off{opacity:.45}
+  #sk97 .nm{flex:1;min-width:0;font-weight:800;font-size:15px}#sk97 .nm small{display:block;font-weight:400;font-size:11px;color:#c9c3e6}
+  #sk97 button{font:inherit;cursor:pointer;border:2px solid transparent;border-radius:10px;padding:7px 10px;font-size:13px;background:#2b2850;color:#fff}
+  #sk97 button.on{border-color:#ffe27a;background:#4a3f7a}
+  #sk97 .df button{padding:6px 8px;font-size:12px}#sk97 .df{display:flex;gap:4px}
+  #sk97 .row{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}#sk97 .row button{flex:1;min-width:120px}
+  #sk97 .go{width:100%;max-width:440px;font-size:20px!important;font-weight:900;padding:14px!important;background:linear-gradient(#ff8a3a,#e0511f)!important;border-color:#ffd27a!important;margin-top:10px}
+  #sk97 .pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;max-height:42vh;overflow:auto;margin:6px 0}
+  #sk97 .pick div{display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,.07);border-radius:10px;padding:6px 2px;font-size:11px;cursor:pointer;border:2px solid transparent}
+  #sk97 .pick div.cur{border-color:#ffe27a}`;document.head.appendChild(css);
+  let go=null,pickSlot=-1;
+  function close(){const o=document.getElementById('sk97');if(o)o.remove()}
+  function render(){
+    close();const o=document.createElement('div');o.id='sk97';
+    o.innerHTML='<h2>⚔ しゅつげきじゅんび</h2><div class="sub">いっしょに行くキャラと、ひとりで行くか、ガード／回避をえらべるよ</div>';
+    const b=document.createElement('div');b.className='box';o.appendChild(b);
+    for(let s=0;s<4;s++){
+      const rc=getChar(PARTY[s]);const off=SOLO>=0&&SOLO!==s;
+      const row=document.createElement('div');row.className='slot'+(SOLO===s?' solo':'')+(off?' off':'');
+      row.appendChild(faceCv(rc,46));
+      const nm=document.createElement('div');nm.className='nm';nm.innerHTML=rc.name+'<small>'+(SOLO===s?'⭐ ひとりで出撃':off?'おやすみ（ソロ中）':'スロット'+(s+1))+'</small>';row.appendChild(nm);
+      const df=document.createElement('div');df.className='df';
+      for(const [k,l] of [['guard','🛡ガード'],['dodge','💨回避']]){const bt=document.createElement('button');bt.textContent=l;if(defOf(rc)===k)bt.className='on';bt.onclick=()=>{DS[rc.id]=k;saveDS();applyParty();render()};df.appendChild(bt)}
+      row.appendChild(df);
+      const ch=document.createElement('button');ch.textContent='かえる';ch.onclick=()=>{pickSlot=pickSlot===s?-1:s;render()};row.appendChild(ch);
+      b.appendChild(row);
+      if(pickSlot===s){
+        const g=document.createElement('div');g.className='pick';
+        for(const c of allChars()){const it=document.createElement('div');if(c.id===rc.id)it.className='cur';it.appendChild(faceCv(c,40));const t=document.createElement('span');t.textContent=c.name;it.appendChild(t);
+          it.onclick=()=>{const j=PARTY.indexOf(c.id);if(j>=0)PARTY[j]=PARTY[s];PARTY[s]=c.id;sv('oni_party',PARTY);applyParty();pickSlot=-1;render()};g.appendChild(it)}
+        b.appendChild(g)}
+    }
+    const r=document.createElement('div');r.className='row';
+    const mk=(lab,on,fn)=>{const x=document.createElement('button');x.textContent=lab;if(on)x.className='on';x.onclick=fn;r.appendChild(x)};
+    mk('👥 4人で出撃',SOLO<0,()=>{SOLO=-1;try{localStorage.setItem('oni_solo','-1')}catch(_){}render()});
+    mk('⭐ ひとりで出撃',SOLO>=0,()=>{if(SOLO<0)SOLO=0;try{localStorage.setItem('oni_solo',String(SOLO))}catch(_){}render()});
+    b.appendChild(r);
+    if(SOLO>=0){const h=document.createElement('div');h.className='sub';h.textContent='ひとりで行くキャラを、上のカードをタップしてえらんでね';b.appendChild(h);
+      b.querySelectorAll('.slot').forEach((el,i)=>{el.querySelector('.nm').onclick=()=>{SOLO=i;try{localStorage.setItem('oni_solo',String(SOLO))}catch(_){}render()}})}
+    const g=document.createElement('button');g.className='go';g.textContent='しゅつげき！';g.onclick=()=>{const f=go;go=null;close();f&&f()};o.appendChild(g);
+    const bk=document.createElement('button');bk.textContent='もどる';bk.style.marginTop='8px';bk.onclick=()=>{go=null;close();window.__sk97back&&window.__sk97back()};o.appendChild(bk);
+    document.body.appendChild(o);
+  }
+  window.openSortie97=function(fn,back){go=fn;window.__sk97back=back;pickSlot=-1;render()};
+  // クエスト：押したら出撃じゅんび → ストーリー → 開始
+  const _lq=launchQuest;launchQuest=function(d,s){
+    openSortie97(()=>{window.__sk97=1;_lq(d,s)},()=>{})};
+  const _sq=showQuest;showQuest=function(){window.__sk97=0;_sq()};
+  // ほかの出撃（チャレンジ/ボス）：開始直前に聞く
+  const _sg=startGame;startGame=function(w0,cfg){
+    cfg=cfg||{};
+    if(window.__sk97||cfg._ok97||cfg.ch==='duel'||cfg.ch==='mp'||cfg.mode==='tut'){if(window.__sk97){window.__sk97=0;cfg._ok97=1}return _sg(w0,cfg)}
+    openSortie97(()=>{cfg._ok97=1;_sg(w0,cfg)},()=>{try{toTitle()}catch(_){}});
+  };
+})();
+
+// ===== v98: 手足のうごき（なし/ひかえめ/ふつう）とポーズ画面のもういちど =====
+(function(){
+  let LV=1;try{const v=localStorage.getItem('oni_limb98');if(v!==null)LV=+v;if(!(LV>=0&&LV<=2))LV=1}catch(_){}
+  window.LK98={leg:1,arm:1};
+  const apply=()=>{LK98.leg=[0,.45,1][LV];LK98.arm=[0,0,1][LV]};apply();
+  const nm=['なし','ひかえめ（足だけ）','ふつう（手も足も）'];
+  const label=()=>'手足のうごき：'+nm[LV];
+  function cycle(){LV=(LV+1)%3;try{localStorage.setItem('oni_limb98',String(LV))}catch(_){}apply();document.querySelectorAll('.limb98').forEach(b=>b.textContent=label())}
+  const addTo=(S,before)=>{if(!S||S.querySelector('.limb98'))return;const b=document.createElement('button');b.className='mid limb98';b.style.width='100%';b.textContent=label();b.onclick=cycle;before?S.insertBefore(b,before):S.insertBefore(b,S.firstChild)};
+  function setup(){
+    try{
+      addTo(document.getElementById('helpSet'));
+      const P=document.getElementById('pause');
+      if(P&&!P.querySelector('.limb98')){
+        const q=document.getElementById('btnQuit');
+        addTo(P,q);
+        const r=document.createElement('button');r.className='mid';r.id='btnRetryP98';r.textContent='もういちど（さいしょから）';let armed=0;
+        r.onclick=()=>{if(!armed){armed=1;r.textContent='もう一度おすと、さいしょからやりなおし';setTimeout(()=>{armed=0;r.textContent='もういちど（さいしょから）'},2500);return}
+          armed=0;r.textContent='もういちど（さいしょから）';P.classList.add('hide');try{window.__sk97=0}catch(_){}
+          try{startGame(lastCfg?1:undefined,lastCfg)}catch(e){console.warn(e)}};
+        P.insertBefore(r,q);
+      }
+    }catch(_){}
+  }
+  window.addEventListener('load',()=>{setup();setTimeout(setup,1200)});
+  const _hs=window.openHelp;
 })();
 
 function makeBG(){
@@ -7475,19 +7571,19 @@ function drawSpriteBody(p){
     +swk*(Math.sin(ph-h*2.3)*6.4*h+sph*2.6*h*h)
     +(1-swk)*Math.sin(t*1.7-h*1.6)*3.2*h
     +hurt*-5*h*h-lagX*(sx<0?-1:1)*10*Math.pow(h,1.5);
-  const ox=flat?(h=>ox0(h)*.26):(h=>ox0(h)*.6);
+  const ox=flat?(h=>ox0(h)*.12):(h=>ox0(h)*.6);
   const bob=J.hy+40.5;
   const hover=full?0:(9+Math.sin(t*2.1)*2.2+(mvk?Math.abs(Math.cos(p.wp))*1.5:0));
   const bottom=(full?(s.footpad||0):0)-hover-(mvk&&full?Math.abs(Math.cos(p.wp))*1.6:0);
   const sY=(v=>1-(1-v)*.6)(Math.max(.74,1-bob/(H*.85)+Math.max(-.07,Math.min(.07,st.av*.0007))+Math.sin(t*2.2)*.008
-    +swk*Math.cos(ph*2)*.035-drp*.014+act*.03-hurt*.06-Math.abs(lagX)*.035+lagY*.012));
+    +swk*Math.cos(ph*2)*(flat?.065:.035)-drp*.014+act*.03-hurt*.06-Math.abs(lagX)*.035+lagY*.012));
   const RG74=(flat&&!gh&&window.rigOf74)?rigOf74(p,s):null;
   const cx=(s.cx||.5)*W,N=flat?((full&&!sprLow)?10:1):(sprLow?10:(G.P.length>2?14:20)),sp=flat?(RG74&&RG74.sp||.4):(s.split||.46),SPF=RG74?RG74.sf:.5;
   g.save();g.translate(p.x,p.y-z-J.lz);
   if(p.down)g.rotate(1.45*p.face);
   else{
-    g.translate(wob*3,-swk*Math.abs(cph)*5);
-    g.rotate((sph*.05*swk+leanV*.09-p.face*.22*hurt+((p.dash||p.dg)?p.face*.14:0))*.7);
+    g.translate(wob*3,-swk*Math.abs(cph)*(flat?11:5));
+    g.rotate((sph*(flat?.09:.05)*swk+leanV*.09-p.face*.22*hurt+((p.dash||p.dg)?p.face*.14:0))*.7);
   }
   g.scale(sx*Math.min(1.2,Math.max(.8,J.sx))*dep*(1+(mvk||p.down?0:Math.sin(t*1.3)*.025)),dep);
   if(!p.down)g.translate(Math.max(-14,Math.min(14,hxk*1.6)),0);
@@ -7510,8 +7606,8 @@ function drawSpriteBody(p){
       }else g.drawImage(S,0,sy0,iw,sh,dx,dy,W,dh);
     }
     if(legMode&&q0>=0){ // 脚：ひざ・足がなめらかにふれる（腰を支点に左右半分を回転）
-      const sy0=Math.max(0,Math.round(q0*ih/N)-1),dyT=yb[q0]-.6,dH=yb[N]-yb[q0]+1.2,hs=ih-sy0,half=W*SPF,ov=1.5*W/iw,dxl=-cx+ox(sp)+ex,pvx=dxl+half,a1=sph*(flat?.5:.3)*swk;
-      for(let sd=0;sd<2;sd++){const sg=sd?-1:1,ang=a1*sg,lf=Math.max(0,sg*sph)*(flat?9:5)*swk;
+      const sy0=Math.max(0,Math.round(q0*ih/N)-1),dyT=yb[q0]-.6,dH=yb[N]-yb[q0]+1.2,hs=ih-sy0,half=W*SPF,ov=1.5*W/iw,dxl=-cx+ox(sp)+ex,pvx=dxl+half,a1=sph*(flat?.5:.3)*swk*(window.LK98?LK98.leg:1);
+      for(let sd=0;sd<2;sd++){const sg=sd?-1:1,ang=a1*sg,lf=Math.max(0,sg*sph)*(flat?9:5)*swk*(window.LK98?LK98.leg:1);
         g.save();g.translate(pvx,dyT-lf);g.rotate(ang);g.translate(-pvx,-dyT);
         if(!sd)g.drawImage(S,0,sy0,iw*SPF+1.5,hs,dxl,dyT,half+ov,dH);else g.drawImage(S,iw*SPF-1.5,sy0,iw*(1-SPF)+1.5,hs,dxl+half-ov,dyT,W-half+ov,dH);
         g.restore()}}
