@@ -6867,6 +6867,16 @@ drawPlayer=function(p){
     p._pa110=p.atkT}}catch(_){}
   return _dP110(p)};
 
+/* ===== v111: ボスのいかり演出（ぶち切れの瞬間・いかり中のオーラ） ===== */
+const _de111=drawEnemy;
+drawEnemy=function(e){
+  _de111(e);
+  try{if(FXL||!fxRdy106()||!G||e.type!=='boss'||e.dead!==undefined||e.hp<=0)return;
+    const r=e.r||40,rg=!!e.rage;
+    if(rg&&!e._rg111){e._rg111=1;fxs106('bossC',e.x,e.y+8,r*7,.9,{ay:.9,g0:.4,g1:1.1,add:false,mode:'io'});fxs106('eHole',e.x,e.y-r,r*4,.7,{g0:.3,g1:1.2,add:false});fxs106('bigBurst',e.x,e.y-r,r*5,.5,{g0:.4,g1:1.1});try{shk(.5);txt(e.x,e.y-r*2.4,'いかり！','#ff6a6a')}catch(_){}}
+    if(rg)spr106('eGhost',e.x,e.y+6,r*3.6,{ay:.92,al:.3+.12*Math.sin(G.t*9),add:false})}catch(_){}
+};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
