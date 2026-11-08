@@ -6902,6 +6902,54 @@ drawEnemy=function(e){
   try{_de112(e)}finally{g.restore()}
 };
 
+/* ===== v115: 技モーション（タイプ別：踏み込み／ジャンプ叩きつけ／反動／おうえんジャンプ） ===== */
+const G115={
+ mel:'いちげき れんげき かんつう つらぬく ぜんぽう ちかづく ちかづいて かいてん ぐるぐる れんぞく れんだ ついび'.split(' '),
+ slam:'ばくげき ばくはつ ふみつけ らくらい せっち ふきとばし しゅうい はんいこうげき ひろがる ひろい うずまき'.split(' '),
+ rng:'えんきょり ちょくせん ついせき れんしゃ れんさ ながれぼし かみなり こおらせる ほのお どく ねつ れいとう'.split(' '),
+ sup:'かいふく おうえん つよくなる まもる ぼうぎょ きょうか むてき ふっかつ いきかえり'.split(' ')};
+function kind115(t){for(const k in G115)if(G115[k].indexOf(t)>=0)return k;return ''}
+const _us115=useSkill;
+useSkill=function(p,k){
+  const c0=p.cd?p.cd[k]:0,r=_us115(p,k),ok=r||(c0<=0&&p.cd&&p.cd[k]>0);
+  try{if(ok&&p.d&&p.d.sk&&p.d.sk[k]){const kd=kind115(p.d.sk[k].tag),ux=p.fx||1,uy=p.fy||0;
+    if(kd==='mel'&&!p.leap){p.lg={t:.18,vx:ux*400,vy:uy*300};
+      if(!FXL&&fxRdy106())fxs106('dashB',p.x-ux*30,p.y-40,120,.2,{rot:Math.atan2(uy,ux),a:.8})}
+    else if(kd==='slam'&&!p.leap){p._h115={t0:G.t,dur:.42,amp:46};
+      setTimeout(()=>{try{if(!G||p.down)return;shk(.25);if(!FXL&&fxRdy106())FX105.ground(p.x,p.y,200,false,.55)}catch(_){}},400)}
+    else if(kd==='rng'){p.lg={t:.09,vx:-ux*130,vy:-uy*80};
+      if(!FXL&&fxRdy106())fxs106('starB',p.x+ux*34,p.y-46,56,.18,{g0:.5,g1:1.3})}
+    else if(kd==='sup'){p._h115={t0:G.t,dur:.38,amp:24};
+      if(!FXL&&fxRdy106())fxs106('ringG',p.x,p.y+4,150,.5,{sy:.4,g0:.5,g1:1.2,under:true})}
+  }}catch(_){}
+  return r};
+const _dP115=drawPlayer;
+drawPlayer=function(p){
+  let set=false;
+  try{const h=p._h115;if(h&&G){const u=(G.t-h.t0)/h.dur;
+    if(u>=1||p.down)p._h115=null;
+    else if(!p.leap&&p.zs===undefined){p.zs=Math.sin(Math.max(0,u)*Math.PI)*h.amp;set=true}}}catch(_){}
+  try{return _dP115(p)}finally{if(set)delete p.zs}};
+
+/* ===== v116: 必殺技モーション（溜め→跳躍→着地の衝撃） ===== */
+const _eu116=execUlt;
+execUlt=function(p){
+  const r=_eu116(p);
+  try{if(p&&!p.down&&!p.leap&&G){p._h115={t0:G.t,dur:.65,amp:64};
+    if(!FXL&&fxRdy106()){fxs106('ringG',p.x,p.y+4,230,.6,{sy:.4,g0:.4,g1:1.3,under:true});fxs106('starB2',p.x,p.y-60,90,.3,{g0:.5,g1:1.4})}
+    setTimeout(()=>{try{if(!G||p.down)return;shk(.4);if(!FXL&&fxRdy106())FX105.ground(p.x,p.y,260,false,.6)}catch(_){}},620)}}catch(_){}
+  return r};
+
+/* ===== v117: 被ダメージのリアクション（のけぞり＋小ジャンプ） ===== */
+const _hp117=hurtP;
+hurtP=function(p,dmg){
+  const h0=p.hp,r=_hp117(p,dmg);
+  try{if(p&&!p.down&&p.hp<h0&&!p.leap&&G){
+    let t=null,bd=1e9;for(const e of G.E||[]){if(e.dead)continue;const d=Math.hypot(e.x-p.x,e.y-p.y);if(d<bd){bd=d;t=e}}
+    if(t){const a=Math.atan2(p.y-t.y,p.x-t.x);if(!(p.lg&&p.lg.t>0))p.lg={t:.12,vx:Math.cos(a)*190,vy:Math.sin(a)*190}}
+    if(!p._h115)p._h115={t0:G.t,dur:.26,amp:14}}}catch(_){}
+  return r};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
