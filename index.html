@@ -7105,6 +7105,87 @@ function initSkills124(){
 const _is124=initSkills;
 initSkills=function(){const first=!BASE;_is124();if(first){try{initSkills124()}catch(e){oops(e)}try{polish100()}catch(e){oops(e)}}};
 
+/* ===== v125: CPUの味方も回避のあと すかさず反撃（スキのない動き） ===== */
+const _ad125=aiDef;
+aiDef=function(p,dt){
+  _ad125(p,dt);
+  try{if(p!==G.L&&!p.down&&G.P.includes(p)){const dd=p.dodgeT>0;
+    if(p._dd125&&!dd&&p.lock<=0){const L=nearList(p,360,1);
+      if(L.length&&R()<.7){const e=L[0],a=Math.atan2(e.y-p.y,e.x-p.x);p.fx=Math.cos(a);p.fy=Math.sin(a);if(Math.abs(p.fx)>.25)p.face=p.fx>0?1:-1;
+        p.lg={t:.16,vx:p.fx*420,vy:p.fy*420};if(p.atkT<=0)attack(p);if(!FXL&&fxRdy106())fxs106('speedB',p.x-p.fx*40,p.y-40,130,.2,{rot:a+(p.fx<0?Math.PI:0),fl:p.fx<0,a:.7})}}
+    p._dd125=dd}}catch(_){}};
+
+/* ===== v126: 敵キャラそれぞれの専用こうげき（シグネチャーわざ） ===== */
+const SIG126={
+ leap:'chibi tobi ushi goblin jinro wolf'.split(' '),slam:'zun golem kyozo ganseki'.split(' '),
+ spiral:'imp fires koumori kuroen murasaki'.split(' '),cross:'frost yoito gaikotsu ginshi'.split(' '),
+ beam:'volt yami gknight tsuki raineko'.split(' '),trap:'toxin mori mandra kinoko'.split(' '),
+ orbs:'shade healer slime kouyou'.split(' '),wall:'armor guren icegolem ginki'.split(' '),
+ meteor:'bomber raijo honoo enma maou'.split(' '),ring:'koori hyoga hyoju'.split(' '),
+ fan:'kokuyo skeleton bat nekonin kaen'.split(' '),rain:'shiro yamimaho'.split(' ')};
+const SIGOF126={};for(const k in SIG126)for(const t of SIG126[k])SIGOF126[t]=k;
+const SIGN126={leap:'とびかかり',slam:'じならし',spiral:'うずまきだん',cross:'十字ざん',beam:'ちょくせん光線',trap:'しかけわな',orbs:'ゆらゆら弾',wall:'かべうち',meteor:'ふりそそぎ',ring:'全方位だん',fan:'おうぎ連射',rain:'ねらいうち雨'};
+function sigStart126(e,tg,d,ux,uy,kind){
+  const col=e.acc||'#ff7a3a',dm=e.dmg,A=Math.atan2(uy,ux),alive=()=>G&&G.E.includes(e)&&!e.dead;let T=.7;
+  const wt=(s,f)=>timed(s,()=>{if(alive())f()});
+  ring(e.x,e.y,e.r*2.2,col,.35,3);
+  if(kind==='leap'){T=.9;tlAdd({x:tg.x,y:tg.y,r:110,dur:.9,dmg:dm*1.4,col,after:()=>{}});const X=tg.x,Y=tg.y;
+    wt(.8,()=>{ring(e.x,e.y,e.r*2,col,.3,2);e.x=clamp(X,30,WW-30);e.y=clamp(Y,30,WH-30);e.stun=Math.max(e.stun||0,.35)})}
+  else if(kind==='slam'){T=.85;tlAdd({x:e.x,y:e.y,r:170,dur:.85,dmg:dm*1.5,col})}
+  else if(kind==='spiral'){T=1.6;for(let k=0;k<14;k++)wt(.5+k*.08,()=>{const a=A+k*.5;FP(e,Math.cos(a),Math.sin(a),230,col,9);if(k%4===0)snd('shoot')})}
+  else if(kind==='cross'){T=1;const b=A;for(let k=0;k<4;k++){const a=b+k*Math.PI/2+Math.PI/4;tlAdd({x:e.x,y:e.y,ux:Math.cos(a),uy:Math.sin(a),len:520,w:44,dur:1,dmg:dm*1.3,col})}}
+  else if(kind==='beam'){T=1;tlAdd({x:e.x,y:e.y,ux,uy,len:760,w:56,dur:1,dmg:dm*1.6,col})}
+  else if(kind==='trap'){T=1.2;for(let k=0;k<4;k++){const a=Math.random()*TAU,r=ri(0,110);tlAdd({x:tg.x+Math.cos(a)*r,y:tg.y+Math.sin(a)*r,r:64,dur:1.1+k*.18,dmg:dm*1.2,col,slow:1})}}
+  else if(kind==='orbs'){T=.9;wt(.6,()=>{for(let k=-1;k<=1;k++){const a=A+k*.5;FP(e,Math.cos(a),Math.sin(a),150,col,17)}snd('zap')})}
+  else if(kind==='wall'){T=1.2;const px=-uy,py=ux;for(let k=-2;k<=2;k++)tlAdd({x:tg.x+px*k*80+ux*40,y:tg.y+py*k*80+uy*40,r:56,dur:1+Math.abs(k)*.1,dmg:dm*1.2,col})}
+  else if(kind==='meteor'){T=1.3;for(let k=0;k<3;k++){tlAdd({x:tg.x+ri(-120,120),y:tg.y+ri(-80,80),r:76,dur:1+k*.3,dmg:dm*1.4,col,bolt:true})}}
+  else if(kind==='ring'){T=.9;wt(.6,()=>{for(let k=0;k<12;k++){const a=k/12*TAU;FP(e,Math.cos(a),Math.sin(a),200,col,10)}ring(e.x,e.y,e.r*3,col,.4,3);snd('zap')})}
+  else if(kind==='fan'){T=.8;wt(.5,()=>{for(let k=-2;k<=2;k++){const a=A+k*.2;FP(e,Math.cos(a),Math.sin(a),360,col,9)}snd('shoot')})}
+  else if(kind==='rain'){T=1.4;for(let k=0;k<5;k++)wt(.2+k*.2,()=>{tlAdd({x:tg.x+ri(-90,90),y:tg.y+ri(-60,60),r:58,dur:.8,dmg:dm*1.1,col})})}
+  e.sg126=T;e.wind=Math.max(e.wind||0,.1);
+  if(!FXL&&G.t-(G._sgT126||-9)>2){G._sgT126=G.t;text(SIGN126[kind],e.x,e.y-e.r*2.6,13,'#fff','center',col)}
+  return T}
+(function(){
+  for(const k of Object.keys(VAI)){if(!SIGOF126[k])continue;const orig=VAI[k];
+    VAI[k]=function(e,dt,tg,d,ux,uy,mvT){
+      if(e.sg126>0){e.sg126-=dt;e.wind=Math.max(e.wind||0,.05);if(e.sg126<=0){e.atkT=Math.max(e.atkT||0,1.2);e.sgT126=6+R()*4}return}
+      if(e.sgT126===undefined)e.sgT126=2+R()*5;
+      if(!e.sleep&&!(e.wind>0)&&e.c123!=='wind'&&e.c123!=='dash'&&e.st!=='cwind'&&e.st!=='dash'&&d<640&&(e.sgT126-=dt)<=0&&G.E.length<60){
+        e.sgT126=6+R()*4;sigStart126(e,tg,d,ux,uy,SIGOF126[k]);return}
+      return orig(e,dt,tg,d,ux,uy,mvT)}}
+})();
+
+/* ===== v127: ボス（オオオニ）にも専用こうげき：HPが減るほど種類が増える ===== */
+const _up127=update;
+update=function(dt){
+  _up127.apply(this,arguments);
+  try{if(!G||G.phase!=='fight'||!G.E)return;
+    for(const e of G.E){if(e.type!=='boss'||e.dead||e.hp<=0||e.sleep)continue;
+      e.sgb127=(e.sgb127===undefined?4+R()*3:e.sgb127)-dt;if(e.sgb127>0)continue;
+      const pl=G.P.filter(p=>!p.down);if(!pl.length)continue;const tg=pl[Math.floor(Math.random()*pl.length)];
+      const d=Math.hypot(tg.x-e.x,tg.y-e.y)||1,hr=e.hp/(e.maxhp||e.hp),ks=['ring','fan','slam'];
+      if(hr<.7)ks.push('cross','meteor','rain');if(hr<.4)ks.push('spiral','beam','wall','trap');
+      const w=e.wind,sg=e.sg126;sigStart126(e,tg,d,(tg.x-e.x)/d,(tg.y-e.y)/d,ks[Math.floor(Math.random()*ks.length)]);
+      e.wind=w;e.sg126=0;e.sgb127=(hr<.4?4.5:6.5)+R()*2.5}}catch(_){}};
+
+/* ===== v128: 通常攻撃のリアルさ（斬撃のかたち・当たった重み・足もとの砂ぼこり） ===== */
+const _dP128=drawPlayer;
+drawPlayer=function(p){
+  try{if(G&&p.d&&!p.down&&p.swDur>0&&p.d.type!=='range'){const pa=p._pa128===undefined?0:p._pa128;
+    if(p.atkT>pa+.02){const c=p.combo||1,ux=p.fx||1,uy=p.fy||0,a=Math.atan2(uy,ux),sd=c%2?1:-1;
+      setTimeout(()=>{try{if(!G||p.down)return;
+        if(!FXL&&fxRdy106())fxs106('slashA',p.x+ux*52,p.y-46+uy*22,110+c*34,.15,{rot:a+sd*(c===3?1.2:.55),g0:.8,g1:1.15,fl:sd<0});
+        if(R()<.7)dust(p.x-ux*14,p.y,2,6)}catch(_){}},Math.max(40,p.swDur*330))}
+    p._pa128=p.atkT}}catch(_){}
+  return _dP128(p)};
+const _he128=hitE;
+hitE=function(e,dmg,src,kb,stun){
+  const r=_he128(e,dmg,src,kb,stun);
+  try{if(e&&dmg>0&&src&&src.d&&src.d.type!=='range'&&src.swDur>0&&src.atkT>0&&e.type!=='boss'&&G){
+    const c=src.combo||1,d=Math.hypot(e.x-src.x,e.y-src.y)||1,k=40+c*45;e.kx=(e.kx||0)+(e.x-src.x)/d*k;e.ky=(e.ky||0)+(e.y-src.y)/d*k;
+    if(c===3)shk(.18)}}catch(_){}
+  return r};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
