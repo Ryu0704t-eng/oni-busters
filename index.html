@@ -7233,6 +7233,28 @@ Object.assign(CHR_RAR,{"b12": "SR", "b13": "SSR", "b14": "SR", "b15": "R", "b16"
     if(!e.sleep&&!(e.wind>0)&&e.st!=='cwind'&&e.st!=='swind'&&d<620&&(e.sgT126-=dt)<=0){e.sgT126=5+R()*3;sigStart126(e,tg,d,ux,uy,K[Math.floor(Math.random()*K.length)]);return}
     return orig(e,dt,tg,d,ux,uy,mvT)}})();
 
+/* ===== v133: ブレイクゲージ（連続でダメージをあたえると敵がダウン→ダメージ1.4倍） ===== */
+const _he133=hitE;
+hitE=function(e,dmg,src,kb,stun){
+  if(e&&dmg>0&&e.brkT>0)dmg*=1.4;
+  const h0=e&&e.hp,r=_he133(e,dmg,src,kb,stun);
+  try{if(e&&G&&e.hp>0&&h0>e.hp&&!(e.brkT>0)&&!(e.brkCd>0)&&src&&src.d){
+    const cap=(e.maxhp||h0)*(e.type==='boss'?.5:.28);e.brk=(e.brk||0)+(h0-e.hp)/cap;e.brkLast=G.t;
+    if(e.brk>=1){e.brk=0;e.brkT=2.2;e.brkCd=7;e.stun=Math.max(e.stun||0,2.2);e.slowT=0;
+      text('BREAK!',e.x,e.y-e.r*2.4,18,'#ffe27a','center','#a02020');ring(e.x,e.y,e.r*2.6,'#ffe27a',.5,4);shk(.25);snd('boom');
+      if(!FXL&&fxRdy106())fxs106('starB2',e.x,e.y-e.r,Math.max(90,e.r*3.6),.35,{g0:.5,g1:1.3})}}}catch(_){}
+  return r};
+const _up133=update;
+update=function(dt){
+  _up133.apply(this,arguments);
+  try{if(G&&G.E)for(const e of G.E){if(e.brkT>0)e.brkT-=dt;if(e.brkCd>0)e.brkCd-=dt;if(e.brk>0&&G.t-(e.brkLast||0)>4)e.brk=Math.max(0,e.brk-dt*.25)}}catch(_){}};
+const _de133=drawEnemy;
+drawEnemy=function(e){
+  _de133(e);
+  try{if(!G||e.hp<=0)return;const b=e.brkT>0?1:(e.brk||0);if(b<=.02)return;const w=Math.max(34,e.r*1.7),x=e.x-w/2,y=e.y-e.r*2.05-4;
+    g.save();g.fillStyle='rgba(0,0,0,.55)';g.fillRect(x-1,y-1,w+2,6);g.fillStyle=e.brkT>0?'#ffe27a':'#ffa040';g.fillRect(x,y,w*Math.min(1,b),4);
+    if(e.brkT>0){g.globalAlpha=.5+.4*Math.sin(G.t*18);g.strokeStyle='#fff';g.lineWidth=1.5;g.strokeRect(x-1,y-1,w+2,6)}g.restore()}catch(_){}};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
