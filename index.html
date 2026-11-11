@@ -7843,6 +7843,96 @@ badge=function(x,y,col,gl,sz){
   if(G&&G.E&&G.E.length>5&&BLAB[gl]){const sv=BLAB[gl];delete BLAB[gl];try{return _bg151(x,y,col,gl,sz)}finally{BLAB[gl]=sv}}
   return _bg151(x,y,col,gl,sz)};
 
+/* ===== v152: ボーナスゾーン（金の輪）— 輪の中で戦うとダメージ1.4倍・必殺ゲージ多め。位置どりが大事になる ===== */
+const _up152=update;
+let bzHint152=0;try{bzHint152=+(localStorage.getItem('oni_bz152')||0)}catch(_){}
+update=function(dt){
+  const r=_up152.apply(this,arguments);
+  try{if(G&&state==='play'&&G.L&&!G.L.down){
+    const z=G.bz152;
+    if(z){z.t-=dt;if(z.t<=0)G.bz152=null}
+    else{
+      if(G.bzT152===undefined)G.bzT152=9+Math.random()*5;
+      G.bzT152-=dt;
+      if(G.bzT152<=0){
+        let tg=null,bd=1e9;for(const e of G.E){if(e.dead)continue;const d=Math.hypot(e.x-G.L.x,e.y-G.L.y)-(e.type==='boss'?200:0);if(d<bd){bd=d;tg=e}}
+        if(tg){const bs=tg.type==='boss',a=bs?Math.atan2(G.L.y-tg.y,G.L.x-tg.x)+(Math.random()-.5)*.8:Math.random()*TAU,d=bs?tg.r*2.5:90;G.bz152={x:clamp(tg.x+Math.cos(a)*d,120,WW-120),y:clamp(tg.y+Math.sin(a)*d*.7,120,WH-120),r:tg.type==='boss'?150:125,t:11,T:11};
+          G.bzT152=20+Math.random()*8;try{AUD137.play('item')}catch(_){}
+          if(bzHint152<2){bzHint152++;try{localStorage.setItem('oni_bz152',String(bzHint152))}catch(_){}G.msg='金の輪の中で戦うと ダメージ1.4倍！';G.msgT=1.6;G._lm151=G.msg}}
+        else G.bzT152=3}}}}catch(_){}
+  return r};
+function inBZ152(p){const z=G&&G.bz152;return z&&!p.down&&Math.hypot(p.x-z.x,(p.y-z.y)*1.4)<z.r}
+const _he152=hitE;
+hitE=function(e,dmg,src,kb,stun){
+  try{if(src&&G&&G.bz152&&G.P.includes(src)&&inBZ152(src)){dmg*=1.4;if(src.ult<100)src.ult=Math.min(100,(src.ult||0)+.8)}}catch(_){}
+  return _he152.call(this,e,dmg,src,kb,stun)};
+const _gd152=gmDraw;
+gmDraw=function(){
+  _gd152.apply(this,arguments);
+  try{const z=G&&G.bz152;if(z){const u=Math.max(0,z.t/z.T),t=G.t,warn=z.t<2.5&&Math.floor(t*8)%2===0;
+    g.save();g.translate(z.x,z.y);g.scale(1,.714);
+    const gr=g.createRadialGradient(0,0,z.r*.2,0,0,z.r);gr.addColorStop(0,'rgba(255,226,122,.05)');gr.addColorStop(1,'rgba(255,226,122,'+(warn?.1:.24)+')');
+    g.fillStyle=gr;g.beginPath();g.arc(0,0,z.r,0,TAU);g.fill();
+    g.lineWidth=5;g.strokeStyle='rgba(255,226,122,'+(warn?.3:.85)+')';g.beginPath();g.arc(0,0,z.r,-Math.PI/2,-Math.PI/2+TAU*u);g.stroke();
+    g.lineWidth=2;g.strokeStyle='rgba(255,240,180,.5)';g.setLineDash([10,12]);g.lineDashOffset=-t*30;g.beginPath();g.arc(0,0,z.r*.82,0,TAU);g.stroke();
+    g.restore()}}catch(_){try{g.restore()}catch(_){}}};
+/* チャンスタイム中は、ボスの足もとにもボーナスゾーンが出る */
+const _ic152=intr151;
+intr151=function(b){_ic152(b);try{const an=Math.atan2(G.L.y-b.y,G.L.x-b.x);G.bz152={x:clamp(b.x+Math.cos(an)*b.r*2.2,120,WW-120),y:clamp(b.y+Math.sin(an)*b.r*1.5,120,WH-120),r:b.r*1.9,t:6,T:6}}catch(_){}};
+
+/* ===== v153: 属性の弱点システム（敵の頭のマークの色＝弱点の色）＋敵の攻撃の動きをリアルに ===== */
+const EL153={fire:'#ff6a3a',ice:'#7ad8ff',thunder:'#ffe45c',wind:'#7dff9a',dark:'#b080ff'};
+/* 氷→炎→風→雷→氷 の順に強い。闇・無属性はあいてを選ばない */
+const BEATS153={ice:'fire',fire:'wind',wind:'thunder',thunder:'ice'};
+function hue153(h){const m=/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(h||'');if(!m)return -1;const r=parseInt(m[1],16)/255,gg=parseInt(m[2],16)/255,b=parseInt(m[3],16)/255,mx=Math.max(r,gg,b),mn=Math.min(r,gg,b),d=mx-mn;if(d<.14||mx<.25)return -1;let H=mx===r?((gg-b)/d)%6:mx===gg?(b-r)/d+2:(r-gg)/d+4;H*=60;return H<0?H+360:H}
+function elOf153(c){const h=hue153(c);if(h<0)return'';if(h<45||h>345)return'fire';if(h<70)return'thunder';if(h<170)return'wind';if(h<255)return'ice';return'dark'}
+function enEl153(e){if(e._el153!==undefined)return e._el153;let c=e.acc||e.bcol||(typeof EN!=='undefined'&&EN[e.type]&&EN[e.type].acc)||'';return e._el153=elOf153(c)}
+function weakOf153(el){if(el==='dark')return'thunder';for(const k in BEATS153)if(BEATS153[k]===el)return k;return''}
+function atkEl153(p){if(p._elT153>G.t&&p._el153!==undefined)return p._el153;return elOf153(p.d&&p.d.col)}
+/* 技・必殺は、その技の色の属性になる */
+const _us153=useSkill;
+useSkill=function(p,k){
+  const c0=p.cd?p.cd[k]:0,r=_us153.apply(this,arguments);
+  try{if((r||(c0<=0&&p.cd&&p.cd[k]>0))&&p.d&&p.d.sk&&p.d.sk[k]){p._el153=elOf153(p.d.sk[k].bc||p.d.col);p._elT153=G.t+1.7}}catch(_){}
+  return r};
+const _ux153=execUlt;
+execUlt=function(p){const r=_ux153.apply(this,arguments);try{p._el153=elOf153(p.d&&p.d.col);p._elT153=G.t+3.2}catch(_){}return r};
+let elHint153=0;try{elHint153=+(localStorage.getItem('oni_el153')||0)}catch(_){}
+const _he153=hitE;
+hitE=function(e,dmg,src,kb,stun){
+  try{if(e&&src&&G&&G.P.includes(src)&&dmg>0){
+    const ee=enEl153(e),ae=atkEl153(src);
+    if(ee&&ae){
+      if(BEATS153[ae]===ee||(ee==='dark'&&ae==='thunder')){dmg*=1.6;
+        if(G.t-(e._wf153||-9)>.5){e._wf153=G.t;try{sparks(e.x,e.y-e.r,EL153[ae],5,260);AUD137.play('combo');if(G.t-(e._wt153||-9)>4){e._wt153=G.t;txt(e.x,e.y-e.r*2.3,'弱点！',EL153[ae],true)}}catch(_){}}}
+      else if(ae===ee){dmg*=.8;if(G.t-(e._rf153||-9)>.6){e._rf153=G.t;try{AUD137.play('clang')}catch(_){}}}}}}catch(_){}
+  return _he153.call(this,e,dmg,src,kb,stun)};
+/* 敵の頭のマーク（この色の技でたたくと1.6倍）／攻撃の予備動作・とっしんの体の動き */
+const _de153=drawEnemy;
+drawEnemy=function(e){
+  let tr=false;
+  try{
+    const dir=G&&G.L?(G.L.x>=e.x?1:-1):1;
+    if(e.c123==='wind'&&!e.dead){const u=Math.max(0,Math.min(1,1-e.c123t/.5));
+      if(!e._cs153){e._cs153=1;try{AUD137.play('charge')}catch(_){}}
+      g.save();tr=true;g.translate(e.x+Math.sin(G.t*70)*1.6*u,e.y);g.rotate(-dir*.2*u);g.scale(1+.06*u,1-.12*u);g.translate(-e.x,-e.y)}
+    else if(e.c123==='dash'&&!e.dead){e._cs153=0;
+      g.save();tr=true;g.translate(e.x,e.y);g.rotate((e.dx123>=0?1:-1)*.2);g.scale(1.22,.9);g.translate(-e.x,-e.y);
+      if(!FXL&&fxRdy106()&&G.t-(e._tf153||-9)>.07){e._tf153=G.t;fxs106('speedB',e.x-(e.dx123||0)*34,e.y-e.r*.8,Math.max(60,e.r*3),.2,{rot:Math.atan2(e.dy123||0,e.dx123||1),g0:.8,g1:1.1,a:.7})}}
+    else e._cs153=0;
+  }catch(_){}
+  try{return _de153.call(this,e)}finally{if(tr)g.restore();
+    try{if(G&&G.L&&!e.dead&&e.hp>0&&!e.crys){const ee=enEl153(e),w=ee&&weakOf153(ee);
+      if(w&&Math.hypot(e.x-G.L.x,e.y-G.L.y)<620){const x=e.x,y=e.y-e.r*(e.type==='boss'?2.8:2.15)-8,s=e.type==='boss'?9:6;
+        g.save();g.fillStyle=EL153[w];g.strokeStyle='rgba(10,6,30,.9)';g.lineWidth=2;g.beginPath();g.moveTo(x,y-s);g.lineTo(x+s,y);g.lineTo(x,y+s);g.lineTo(x-s,y);g.closePath();g.stroke();g.fill();g.restore()}}}catch(_){}}};
+/* ヒントは最初の2回だけ */
+const _up153=update;
+let hT153=0;
+update=function(dt){
+  const r=_up153.apply(this,arguments);
+  try{if(G&&state==='play'&&elHint153<2&&G.t>14&&G.t-hT153>30&&!G.msg){hT153=G.t;elHint153++;try{localStorage.setItem('oni_el153',String(elHint153))}catch(_){}G.msg='敵の頭のひし形と同じ色の技で たたくと1.6倍！';G.msgT=1.8;G._lm151=G.msg}}catch(_){}
+  return r};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
