@@ -1564,7 +1564,7 @@ function drawDG(L,p){
   if(G.t<9)text('ガードは長押し！ 直前で押すとジャストガード',cw/2,ch-14,12,'rgba(255,240,170,'+Math.min(1,(9-G.t))+')','center','rgba(0,0,0,.8)');
 }
 function btnPick(x,y){
-  const L=lay(),list=[['atk',L.atk],['s1',L.s1],['s2',L.s2],['ult',L.ult],['swap',L.swap],['dodge',L.dodge],['guard',L.guard]];if(bossE())list.push(['focus',L.focus]);
+  const L=lay(),list=[['atk',L.atk],['s1',L.s1],['s2',L.s2],['ult',L.ult],['swap',L.swap],['dodge',L.dodge],['guard',L.guard]];if(G.E.length)list.push(['focus',L.focus]);
   let best=null,bd=1e9;for(const [k,b] of list){const d=Math.hypot(x-b.x,y-b.y)/b.r;if(d<1.4&&d<bd){bd=d;best=k}}if(!best){const M=miniRect();if(x>=M.x&&x<=M.x+M.sz&&y>=M.y&&y<=M.y+M.sz)return 'mini'}return best}
 function bossInit(e){
   const bc=G.bossCfg;let k=(bc&&bc.fin)?'fin':bossKindFor();const K=BK[k]||BK.fire;e.bk=k;
@@ -8638,6 +8638,24 @@ showResult=function(){
 setInterval(()=>{try{const nw=TITLES68.filter(t=>/^f/.test(t.id)&&t.ok()&&!F176.earned[t.id]);
   if(nw.length&&typeof state!=='undefined'&&state!=='over'){nw.forEach(t=>F176.earned[t.id]=1);saveF176();toast55('🏅 しょうごう「'+nw[0].n+'」ゲット！')}}catch(_){}},4000);
 
+/* ===== v178: ボス以外にもタゲ（ロックオン）。ボスがいなければ、いちばん近い敵をロック→もう一度おすと次の敵→さいごに解除 ===== */
+function ftE(){
+  if(!G)return null;const b=bossE();if(b)return b;
+  if(G.ft&&G.E.includes(G.ft))return G.ft;
+  if(G.focus&&G.L){const n=nearestE(G.L.x,G.L.y,2200);if(n){G.ft=n;return n}}
+  return null}
+toggleFocus=function(){
+  if(!G)return;const b=bossE();
+  if(b){G.focus=!G.focus;snd('shoot');return}
+  if(!G.E.length)return;
+  const L=G.L||G.P[0];
+  const lst=G.E.slice().sort((a,c)=>Math.hypot(a.x-L.x,a.y-L.y)-Math.hypot(c.x-L.x,c.y-L.y)).slice(0,6);
+  if(!G.focus){G.focus=true;G.ft=lst[0];snd('shoot');return}
+  const i=lst.indexOf(G.ft);
+  if(i>=0&&i<lst.length-1&&lst.length>1){G.ft=lst[i+1];snd('shoot')}
+  else{G.focus=false;G.ft=null;snd('shoot')}};
+aimTarget=function(p,range){const b=ftE();if(G.focus&&b)return b;return nearestE(p.x,p.y,range)};
+
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
   if(G&&G.mapI>0){MD[MAPS[G.mapI].id](x);bakeDepth(x);return}
@@ -9041,7 +9059,7 @@ const SK=[
  ],
  [
   p=>{const c=CLIPS.bolt;playClip(p,'bolt');p.lock=c.dur*.88;
-    let list=G.E.slice().sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y));const bb=bossE();if(G.focus&&bb)list=[bb,bb,bb];else list=list.slice(0,3);
+    let list=G.E.slice().sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y));const bb=ftE();if(G.focus&&bb)list=[bb,bb,bb];else list=list.slice(0,3);
     const ox=p.fx,oy=p.fy;
     timed(.15,()=>{if(p.down)return;const q=mw(p,p.J.tip[0],p.J.tip[1]);twinkle(q[0],q[1],'#d8c0ff',10,24,1.5);sparks(q[0],q[1],'#e8d8ff',8,200)});
     list.forEach((e,k)=>strikeAt(e.x,e.y,.5+k*.1,p.d.atk*4.5,65,p));
@@ -9188,7 +9206,7 @@ function updP0(p,dt){
 }
 function ai(p,dt){
   const a=p.ai,d=p.d,L=G.L;let mx=0,my=0;
-  const bz=bossE(),near=(G.focus&&bz)?bz:nearestE(p.x,p.y,700);
+  const bz=bossE(),near=(G.focus&&ftE())?ftE():nearestE(p.x,p.y,700);
   const mv=(tx,ty,stop)=>{const dx=tx-p.x,dy=ty-p.y,dd=Math.hypot(dx,dy);if(dd>stop){mx=dx/dd;my=dy/dd}return dd};
   const dl=dist(p,L);
   if(near&&dl<650){
@@ -9325,7 +9343,7 @@ function update(dt){
   if(G.cut){G.cut.t+=dt;if(G.cut.t>=G.cut.dur){const c=G.cut;G.cut=null;execUlt(c.p)}return}
   if(G.hs>0){G.hs-=dt;return}
   if(G.slow>0){G.slow-=dt;dt*=G.slowk||.4}
-  G.t+=dt;if(G.focus&&!bossE())G.focus=false;G.shake=Math.max(0,G.shake-dt);G.aiUlt=Math.max(0,G.aiUlt-dt);if(G.msgT>0)G.msgT-=dt;
+  G.t+=dt;if(G.focus&&!ftE())G.focus=false;G.shake=Math.max(0,G.shake-dt);G.aiUlt=Math.max(0,G.aiUlt-dt);if(G.msgT>0)G.msgT-=dt;
   for(const p of G.P)updP(p,dt);
   for(let i=0;i<G.P.length;i++)for(let j=i+1;j<G.P.length;j++){
     const a=G.P[i],b=G.P[j];if(a.down||b.down)continue;
@@ -9362,10 +9380,10 @@ function update(dt){
   // カメラ
   const S=scale(),vw=cw/S,vh=ch/S,L=G.L;
   let ccx=L.x,ccy=L.y;const bz=bossE();
-  if(G.focus&&bz){ccx=L.x+(bz.x-L.x)*.52;ccy=L.y+(bz.y-L.y)*.52}
+  {const bz=ftE();if(G.focus&&bz){ccx=L.x+(bz.x-L.x)*.52;ccy=L.y+(bz.y-L.y)*.52}}
   let tx=vw>=WW?(WW-vw)/2:clamp(ccx-vw/2,0,WW-vw);
   let ty=vh>=WH?(WH-vh)/2:clamp(ccy-vh/2+vh*.08,0,WH-vh);
-  if(G.focus&&bz){if(vw<WW)tx=clamp(clamp(tx,L.x-vw*.64,L.x-vw*.22),0,WW-vw);if(vh<WH)ty=clamp(clamp(ty,L.y-vh*.7,L.y-vh*.28),0,WH-vh)}
+  {const bz=ftE();if(G.focus&&bz){if(vw<WW)tx=clamp(clamp(tx,L.x-vw*.64,L.x-vw*.22),0,WW-vw);if(vh<WH)ty=clamp(clamp(ty,L.y-vh*.7,L.y-vh*.28),0,WH-vh)}}
   if(cam.x<-1e8){cam.x=tx;cam.y=ty}else{const k=1-Math.exp(-dt*8);cam.x+=(tx-cam.x)*k;cam.y+=(ty-cam.y)*k}
 }
 
@@ -10461,7 +10479,7 @@ function drawHUD(){
   icon('swap',L.swap.x+L.swap.r*.55,L.swap.y+L.swap.r*.5,L.swap.r*.3,'#fff');
   g.strokeStyle='#fff';g.lineWidth=2;g.beginPath();g.arc(L.swap.x,L.swap.y,L.swap.r-1,0,TAU);g.stroke();
   text('交代',L.swap.x,L.swap.y+L.swap.r+10,ls,'#fff','center','rgba(0,0,0,.85)');
-  if(boss){
+  if(boss||G.E.length){
     const f=L.focus,on=G.focus;
     g.fillStyle='rgba(0,0,0,.55)';g.beginPath();g.arc(f.x,f.y,f.r,0,TAU);g.fill();
     g.fillStyle=on?'#e0405a':'#6a2a44';g.beginPath();g.arc(f.x,f.y,f.r-3,0,TAU);g.fill();
@@ -10537,7 +10555,7 @@ function draw(){
   const list=[];for(const p of G.P)list.push([p.y,0,p]);for(const e of G.E)list.push([e.y,1,e]);for(const e of G.DE)list.push([e.y,1,e]);
   list.sort((a,b)=>a[0]-b[0]);
   for(const it of list)it[1]?drawEnemy(it[2]):drawPlayer(it[2]);
-  {const bb=bossE();if(bb&&G.focus)drawReticle(bb)}
+  {const bb=ftE();if(bb&&G.focus)drawReticle(bb)}
   drawIndic();
   for(const b of G.PR)drawPR(b);
   fxDimStart();try{for(const f of G.FX)if(!f.under&&f.draw)f.draw(f)}finally{fxDimEnd()}
