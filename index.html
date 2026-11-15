@@ -4966,7 +4966,7 @@ const MAPIMG68='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEB
     let sl='<div class="seals68">';for(let i=0;i<7;i++)sl+='<i class="'+(i<lv?'open':'')+'">'+(i<lv?'🔓':'🔒')+'</i>';sl+='</div>';
     const sd=E_('div','width:100%;max-width:400px');sd.innerHTML=sl+'<div style="font-size:11px;color:#aaa">ちがうボスをたおすたびに封印がひとつ解け、ごほうび🪙300。ホーム画面もだんだん輝きます。</div>';o.appendChild(sd);
     const h2=E_('h3','','称号');h2.className='';o.appendChild(h2);
-    TITLES68.forEach(t=>{const ok=t.ok(),on=REC68.title===t.id&&ok;const r=E_('div','');r.className='tt68'+(on?' on':'')+(ok?'':' lock');r.innerHTML='<div style="flex:1"><b>'+(ok?'':'🔒 ')+t.n+'</b><small>'+t.d+'</small></div>'+(ok?(on?'<span style="color:#ffe27a;font-size:12px">装備中</span>':'<span style="color:#9fd8ff;font-size:12px">つける</span>'):'');
+    TITLES68.forEach(t=>{const ok=t.ok(),on=REC68.title===t.id&&ok;const r=E_('div','');r.className='tt68'+(on?' on':'')+(ok?'':' lock');r.innerHTML='<div style="flex:1"><b>'+(ok?'':'🔒 ')+((!ok&&/^f/.test(t.id))?'？？？':t.n)+'</b><small>'+t.d+'</small></div>'+(ok?(on?'<span style="color:#ffe27a;font-size:12px">装備中</span>':'<span style="color:#9fd8ff;font-size:12px">つける</span>'):'');
       if(ok)r.onclick=()=>{REC68.title=t.id;saveRec68();updTitle68();buildRec()};o.appendChild(r)});
     const h3=E_('h3','','記録');o.appendChild(h3);
     const g_=E_('div','');g_.className='stg68';
@@ -8640,13 +8640,12 @@ setInterval(()=>{try{const nw=TITLES68.filter(t=>/^f/.test(t.id)&&t.ok()&&!F176.
 
 /* ===== v178: ボス以外にもタゲ（ロックオン）。ボスがいなければ、いちばん近い敵をロック→もう一度おすと次の敵→さいごに解除 ===== */
 function ftE(){
-  if(!G)return null;const b=bossE();if(b)return b;
-  if(G.ft&&G.E.includes(G.ft))return G.ft;
+  if(!G)return null;if(G.ft&&G.E.includes(G.ft))return G.ft;const b=bossE();if(b)return b;
   if(G.focus&&G.L){const n=nearestE(G.L.x,G.L.y,2200);if(n){G.ft=n;return n}}
   return null}
 toggleFocus=function(){
   if(!G)return;const b=bossE();
-  if(b){G.focus=!G.focus;snd('shoot');return}
+  if(b){G.focus=!G.focus;G.ft=null;snd('shoot');return}
   if(!G.E.length)return;
   const L=G.L||G.P[0];
   const lst=G.E.slice().sort((a,c)=>Math.hypot(a.x-L.x,a.y-L.y)-Math.hypot(c.x-L.x,c.y-L.y)).slice(0,6);
@@ -8655,6 +8654,130 @@ toggleFocus=function(){
   if(i>=0&&i<lst.length-1&&lst.length>1){G.ft=lst[i+1];snd('shoot')}
   else{G.focus=false;G.ft=null;snd('shoot')}};
 aimTarget=function(p,range){const b=ftE();if(G.focus&&b)return b;return nearestE(p.x,p.y,range)};
+
+/* ===== v179: 敵を直接タップしてロックオン（ボタンのない場所で、敵の近くをタップ。同じ敵をもう一度タップで解除） ===== */
+cv.addEventListener('pointerdown',e=>{
+  try{if(state!=='play'||!G||G.over||G.phase==='cut')return;
+    const x=e.clientX,y=e.clientY;if(y<120||btnPick(x,y))return;
+    const S=scale(),wx=x/S+cam.x,wy=y/S+cam.y;let best=null,bd=1e9;
+    for(const en of G.E){const d=Math.hypot(en.x-wx,en.y-28-wy),lim=Math.max(en.r||20,26)+34;if(d<lim&&d<bd){bd=d;best=en}}
+    if(!best)return;
+    if(G.focus&&ftE()===best){G.focus=false;G.ft=null}
+    else{G.focus=true;G.ft=(best.type==='boss')?null:best}
+    snd('shoot')}catch(_){}
+},true);
+
+/* ===== v180: ネタ称号 第3弾（連敗・連勝・ノーダウン・七転び八起き など） ===== */
+Object.assign(F176,Object.assign({ws:0,wsMax:0,clean:0,big5:0,comeback:0},JSON.parse(localStorage.getItem('oni_fun176')||'{}')));
+try{TITLES68.push(
+ {id:'f16',n:'あきらめない心',d:'10回れんぞくで負ける',ok:()=>F176.lsMax>=10},
+ {id:'f17',n:'七転び八起き',d:'7回れんぞくで負けたあと、勝つ',ok:()=>F176.comeback>=1},
+ {id:'f18',n:'連勝街道',d:'5回れんぞくで勝つ',ok:()=>F176.wsMax>=5},
+ {id:'f19',n:'ノーダウンの美学',d:'一度もダウンせずに10回勝つ',ok:()=>F176.clean>=10},
+ {id:'f20',n:'どん底からの大逆転',d:'ダウンを5回以上しても勝つ',ok:()=>F176.big5>=1},
+ {id:'f21',n:'ひとやすみ名人',d:'ポーズを100回おす',ok:()=>F176.pz>=100},
+ {id:'f22',n:'必殺のバーゲンセール',d:'必殺技を300回うつ',ok:()=>F176.ult>=300}
+)}catch(_){}
+const _sr180=showResult;
+showResult=function(){
+  try{const I=G.resInfo||{},win=!!I.win,dn=G.downs||0;
+    if(win){if(F176.ls>=7)F176.comeback++;F176.ws=(F176.ws||0)+1;F176.wsMax=Math.max(F176.wsMax||0,F176.ws);if(dn===0)F176.clean++;if(dn>=5)F176.big5++}
+    else F176.ws=0;
+    saveF176()}catch(_){}
+  return _sr180.apply(this,arguments)};
+
+/* ===== v182: 味方CPUの動き：敵を左右から囲む(はさみうち)・味方どうしで重ならない・ピンチは下がる ===== */
+const _ai182=ai;
+ai=function(p,dt){
+  const r=_ai182.apply(this,arguments);
+  try{const d=p.d,L=G.L;if(p===L||p.down)return r;
+    let mx=r[0],my=r[1];
+    const near=(G.focus&&ftE())?ftE():nearestE(p.x,p.y,700);
+    if(near&&dist(p,L)<650){
+      const dd=Math.hypot(near.x-p.x,near.y-p.y);
+      if(d.type!=='range'){
+        const reach=d.reach*.7,ang0=Math.atan2(L.y-near.y,L.x-near.x),k=((p.i%4)-1.5)*.75;
+        if(dd>reach*2.2){/* 遠いうちは、自分の担当の角度の位置へまわりこむ */
+          const tx=near.x+Math.cos(ang0+k)*(reach+near.r),ty=near.y+Math.sin(ang0+k)*(reach+near.r),
+            ex=tx-p.x,ey=ty-p.y,el=Math.hypot(ex,ey);
+          if(el>20){mx=ex/el;my=ey/el}}
+      }
+      if(p.hp<p.maxhp*.25&&dd<260&&p.atkT<=0){/* ピンチは仲間のほうへ下がる */
+        const bx=L.x-p.x,by=L.y-p.y,bl=Math.hypot(bx,by);if(bl>60){mx=bx/bl;my=by/bl}}
+    }
+    /* 味方どうしでかさならない */
+    for(const q of G.P){if(q===p||q.down)continue;const sx=p.x-q.x,sy=p.y-q.y,sd=Math.hypot(sx,sy);
+      if(sd>0&&sd<64){const w=(64-sd)/64*.9;mx+=sx/sd*w;my+=sy/sd*w}}
+    const l=Math.hypot(mx,my);if(l>1){mx/=l;my/=l}
+    return[mx,my]}catch(_){return r}};
+
+/* ===== v183: 敵どうしが1点に重ならないよう、ゆるくおしあう（ボスは動かさない） ===== */
+const _up183=update;
+update=function(dt){
+  const r=_up183.apply(this,arguments);
+  try{if(G&&G.E&&G.E.length>1&&G.E.length<45&&!G.over){const E=G.E;
+    for(let i=0;i<E.length;i++){const a=E[i];if(a.type==='boss')continue;
+      for(let j=i+1;j<E.length;j++){const b=E[j];
+        const dx=a.x-b.x,dy=a.y-b.y,m=((a.r||18)+(b.r||18))*.8;
+        if(dx>m||dx<-m||dy>m||dy<-m)continue;
+        const d=Math.hypot(dx,dy)||.01;if(d>=m)continue;
+        const f=(m-d)/m*130*dt,ux=dx/d,uy=dy/d,wa=b.type==='boss'?1:.5,wb=b.type==='boss'?0:.5;
+        a.x=clamp(a.x+ux*f*wa*2*.5,20,WW-20);a.y=clamp(a.y+uy*f*wa*2*.5,20,WH-20);
+        if(wb){b.x=clamp(b.x-ux*f*wb,20,WW-20);b.y=clamp(b.y-uy*f*wb,20,WH-20)}}}}}catch(_){}
+  return r};
+
+/* ===== v184: 歩き・殴り・必殺の動きの上乗せ（足元を支点に、ため→のび→ちぢみ） ===== */
+const _dp184=drawPlayer;
+drawPlayer=function(p){
+  let rot=0,sx=1,sy=1,dy=0;
+  try{
+    if(!p.down&&!G.over){
+      const sgn=(p.fx<0?-1:1);
+      /* 必殺：しゃがみ→のび上がり→空中で反り→着地でつぶれる */
+      const h=p._h115;
+      if(h){const u=(G.t-h.t0)/h.dur;
+        if(u>=0&&u<1.15){
+          if(u<.16){const k=u/.16;sy=1-.2*k;sx=1+.12*k;rot=-.06*sgn*k}
+          else if(u<.45){const k=(u-.16)/.29;sy=.8+.4*k;sx=1.12-.2*k;rot=(-.06-.16*k)*sgn}
+          else if(u<.8){const k=(u-.45)/.35;sy=1.2-.2*k;sx=.92+.08*k;rot=(-.22+.1*k)*sgn}
+          else{const k=Math.min(1,(u-.8)/.15);const s=Math.sin(k*Math.PI);sy=1-.22*s;sx=1+.14*s;rot=.12*sgn*(1-k)}}}
+      /* 殴り：ため(のけぞり)→踏みこみ(前のめり＋のび)→もどり */
+      else if(p.swT!==undefined&&p.swDur&&p.swT<p.swDur&&p.swT>=0){
+        const u=p.swT/p.swDur;
+        if(u<.28){const k=u/.28;rot=-.1*sgn*k;sy=1-.05*k;sx=1+.03*k}
+        else if(u<.55){const k=(u-.28)/.27;rot=(-.1+.3*k)*sgn;sx=1.03+.07*k;sy=.95+.02*k}
+        else{const k=(u-.55)/.45;rot=.2*sgn*(1-k);sx=1.1-.1*k;sy=.97+.03*k}}
+      /* 歩き：1歩ごとにわずかにはずむ・ゆれる */
+      else if(p.moving&&!p.leap){const w=p.wp*.5;dy=-Math.abs(Math.sin(w))*2.2;rot=Math.sin(w)*.022;sy=1+Math.abs(Math.cos(w))*.012;sx=1-Math.abs(Math.cos(w))*.01}
+    }
+  }catch(_){}
+  if(!rot&&sx===1&&sy===1&&!dy)return _dp184.apply(this,arguments);
+  g.save();g.translate(p.x,p.y);g.rotate(rot);g.scale(sx,sy);g.translate(-p.x,-p.y+dy);
+  try{return _dp184.apply(this,arguments)}finally{g.restore()}};
+
+/* ===== v185: 敵の歩き（1歩ごとのはずみ・ゆれ）。ボスは重いのでゆっくり・小さめ ===== */
+const _de185=drawEnemy;
+drawEnemy=function(e){
+  let dy=0,rot=0;
+  try{if(G&&!G.over&&!(e.hp<=0)){
+    const mvd=Math.hypot(e.x-(e._px185===undefined?e.x:e._px185),e.y-(e._py185===undefined?e.y:e._py185));
+    e._px185=e.x;e._py185=e.y;
+    if(mvd>.25&&!(e.wind>0)&&!(e.c123t>0)&&!(e.stun>0)){
+      e._ph185=(e._ph185||Math.random()*6)+Math.min(mvd,6)*.16;
+      const bs=e.type==='boss',a=bs?.8:2.0;
+      dy=-Math.abs(Math.sin(e._ph185))*a;rot=Math.sin(e._ph185)*(bs?.006:.03)}}}catch(_){}
+  if(!dy&&!rot)return _de185.apply(this,arguments);
+  g.save();g.translate(e.x,e.y);g.rotate(rot);g.translate(-e.x,-e.y+dy);
+  try{return _de185.apply(this,arguments)}finally{g.restore()}};
+
+/* ===== v186: 味方CPUが立ち止まっているときも、近くの敵のほうを向く（棒立ちで別の方向を見ない） ===== */
+const _ai186=ai;
+ai=function(p,dt){
+  const r=_ai186.apply(this,arguments);
+  try{if(p!==G.L&&!p.down&&Math.abs(r[0])+Math.abs(r[1])<.05&&p.swT>=p.swDur){
+    const n=(G.focus&&ftE())?ftE():nearestE(p.x,p.y,520);
+    if(n){const dx=n.x-p.x,dy=n.y-p.y,l=Math.hypot(dx,dy);if(l>1){const k=Math.min(1,dt*9);p.fx+=(dx/l-p.fx)*k;p.fy+=(dy/l-p.fy)*k;const m=Math.hypot(p.fx,p.fy)||1;p.fx/=m;p.fy/=m}}}}catch(_){}
+  return r};
 
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
