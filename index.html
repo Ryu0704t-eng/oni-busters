@@ -8548,7 +8548,7 @@ attack=function(p){
 const _h174=hitE;let in174=0;
 hitE=function(e,dmg,src,kb,stun){
   const r=_h174.apply(this,arguments);
-  try{if(!in174&&!FXL&&e&&src&&G&&G.P&&G.P.includes(src)&&G.t-(G._hb174||-9)>.16){
+  try{if(!in174&&!FXL&&e&&src&&G&&G.P&&G.P.includes(src)&&(src===G.L||e.type==='boss')&&G.t-(G._hb174||-9)>.22){
     const ae=atkEl153(src);if(ELS174.includes(ae)){G._hb174=G.t;
       const big=e.boss||dmg>(e.mhp||e.maxhp||100)*.06;
       fxs106('n_burst_'+ae,e.x,e.y+6,big?110:70,.3,{ay:.85,g0:.7,g1:1.1,a:.9})}}}catch(_){}
@@ -8879,13 +8879,13 @@ function lag190(o,dt0){
   o._sk190=(o._sk190||0)+(tgt-(o._sk190||0))*.25;return o._sk190}
 const _dp190=drawPlayer;
 drawPlayer=function(p){
-  let k=0;try{if(!p.down&&!FXL&&G&&!G.over)k=lag190(p)}catch(_){}
+  let k=0;try{if(!p.down&&!FXL&&G&&!G.over&&G.E.length<=12)k=lag190(p)}catch(_){}
   if(Math.abs(k)<.01)return _dp190.apply(this,arguments);
   g.save();g.translate(p.x,p.y);g.transform(1,0,k,1,0,0);g.translate(-p.x,-p.y);
   try{return _dp190.apply(this,arguments)}finally{g.restore()}};
 const _de190=drawEnemy;
 drawEnemy=function(e){
-  let k=0;try{if(!FXL&&G&&!G.over&&e.type!=='boss'&&G.E.length<=14&&!(e.hp<=0))k=lag190(e)}catch(_){}
+  let k=0;try{if(!FXL&&G&&!G.over&&e.type!=='boss'&&G.E.length<=8&&!(e.hp<=0))k=lag190(e)}catch(_){}
   if(Math.abs(k)<.01)return _de190.apply(this,arguments);
   g.save();g.translate(e.x,e.y);g.transform(1,0,k,1,0,0);g.translate(-e.x,-e.y);
   try{return _de190.apply(this,arguments)}finally{g.restore()}};
@@ -8894,7 +8894,7 @@ drawEnemy=function(e){
 const _dp191=drawPlayer;
 drawPlayer=function(p){
   let rot=0,sy=1,sx=1,dx=0;
-  try{if(!p.down&&!FXL&&G&&!G.over){
+  try{if(!p.down&&!FXL&&G&&!G.over&&G.E.length<=12){
     const still=!p.moving&&!(p.swT<p.swDur)&&!p.dash&&!p.dg&&!(p.lock>0);
     p._il191=still?(p._il191||0)+1/60:0;
     if(p._il191>2){const t=G.t+p.i*1.7,ph=(t%6)/6;
@@ -8907,7 +8907,7 @@ drawPlayer=function(p){
 const _de191=drawEnemy;
 drawEnemy=function(e){
   let rot=0,dy=0;
-  try{if(!FXL&&G&&!G.over&&e.type!=='boss'&&G.E.length<=14&&!(e.hp<=0)&&!(e.wind>0)&&!(e.c123t>0)&&!(e.stun>0)){
+  try{if(!FXL&&G&&!G.over&&e.type!=='boss'&&G.E.length<=8&&!(e.hp<=0)&&!(e.wind>0)&&!(e.c123t>0)&&!(e.stun>0)){
     const m=Math.hypot(e.x-(e._lx191===undefined?e.x:e._lx191),e.y-(e._ly191===undefined?e.y:e._ly191));e._lx191=e.x;e._ly191=e.y;
     if(m<.15){const t=G.t*2.2+(e.id||e.x*.01);rot=Math.sin(t)*.025;dy=-Math.abs(Math.sin(t*.7))*1.2}}}catch(_){}
   if(!rot&&!dy)return _de191.apply(this,arguments);
@@ -9131,6 +9131,8 @@ initSkills=function(){const first=!BASE;_is198();if(first){try{initSkills198()}c
 
 /* ===== v199: ホームを見やすく／お知らせ（なにが追加されたか）／出撃じゅんびで装備のつけ外しがわかる ===== */
 const NEWS199=[
+ ['2026-11-18','🔧 CP対戦の相手がそのキャラの技（弾・範囲・突進・ガード）を使うように。必殺はボスだけ'],
+ ['2026-11-18','🔧 さらに軽量化（なぐりエフェクトはリーダーとボス戦のみ、敵が多いと動きを簡略化）'],
  ['2026-11-17','🆕 必殺に「ため」演出。ほのお・こおり・かみなりなど必殺を9つ追加（拳・瞬間移動・地震・ビームなど）'],
  ['2026-11-17','🆕 ばくはつ系6・なぐり系6の技を追加。ラッシュ技は1発ごとに演出'],
  ['2026-11-17','🔧 ガチャのダブりコインは、同じものが重なるほど少なく。50回で天井(SSR以上かくてい)'],
@@ -9170,6 +9172,58 @@ function openNews199(){
 function eqLbl199(id){
   try{const e=eqe(id),o=[];for(const s of['w','a','c']){const q=e[s];if(q){const it=EQS.find(x=>x.id===q);if(it)o.push(it.n)}}
     return o.length?' ／ 🛡'+o.join('・'):' ／ <span style="color:#ff9a9a">そうびなし</span>'}catch(_){return ''}}
+
+/* ===== v200: 対戦CPUをかなり強く（見切り・反撃・すきを突く・足を止めない）／なぐりの命中エフェクトを増やす ===== */
+(function(){
+  const isDuel=()=>!!(G&&G.cfg&&G.cfg.ch==='duel');
+  const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const _ai=VAI.rival;
+  VAI.rival=function(e,dt,tg,d,ux,uy,mvT){
+    if(!isDuel()||e.remote)return _ai.apply(this,arguments);
+    const lv=G.cfg.lv||1,k=lv/4;
+    try{
+      /* 1 足がはやい */
+      if(!e._bs200)e._bs200=e.spd;e.spd=e._bs200*(1+.1*k+.06);
+      /* 2 こうげきの間隔がみじかい（ためなおしが早い） */
+      if(e.atkT>0)e.atkT-=dt*(.25+.35*k);
+      if(e.rcd93>0)e.rcd93-=dt*.4;
+      /* 3 相手が技/必殺/攻撃のあとでスキだらけなら、すぐ殴りにいく */
+      let punish=false;for(const p of G.P){if(p.down)continue;if((p.lock>0||p.atkT>0)&&Math.hypot(p.x-e.x,p.y-e.y)<260){punish=true;break}}
+      if(punish&&e.atkT>.15&&!(e.st93&&e.st93!=='idle')&&!(e.wind>0)&&Math.random()<.04+.06*k)e.atkT=.05;
+      /* 4 見切り：相手の攻撃の始まりを見て、すばやくよけて反撃 */
+      if(!(e.def93>0)&&!(e.dod93>0)&&!(e.cnt200>0)){
+        let th=false;for(const p of G.P){if(!p.down&&(p.atkT>0||p.lock>0)&&Math.hypot(p.x-e.x,p.y-e.y)<150){th=true;break}}
+        if(th&&Math.random()<.015+.05*k){e.dod93=.22;const a=Math.atan2(uy,ux)+(Math.random()<.5?1.57:-1.57);e.dvx=Math.cos(a)*560;e.dvy=Math.sin(a)*560;e.inv93=.28;e.cnt200=.35;ring(e.x,e.y,e.r*1.4,'#ffffff',.2,2)}}
+      if(e.cnt200>0){e.cnt200-=dt;if(e.cnt200<=0&&e.dod93<=0&&d<420&&(!e.st93||e.st93==='idle')){e.st93='lunge';e.stT93=.3;e.hit93=0;e.atkT=1.4;txt(e.x,e.y-e.r*2.2,'はんげき！','#ffd24a')}}
+
+      /* 5 ふつうの技(わざ)をつかう：そのキャラの技のタイプに合わせた攻撃。必殺はつかわない */
+      e.skcd201=(e.skcd201===undefined?3:e.skcd201)-dt;
+      if(e.skcd201<=0&&(!e.st93||e.st93==='idle')&&!(e.wind>0)&&!(e.def93>0)&&d<460&&d>70){
+        e.skcd201=Math.max(2.2,5.5-lv*.7)+Math.random()*1.5;
+        const rc=getChar(e.rid),ids=(rc&&rc.sk&&rc.sk.length?rc.sk:['bolt']),sid=ids[Math.floor(Math.random()*ids.length)],sd=SKILLS[sid]||{},tag=sd.tag||'とばす',col=sd.bc||e.rcol||'#ffd24a';
+        try{txt(e.x,e.y-e.r*2.4,sd.n||'わざ',col,true)}catch(_){}
+        const A=Math.atan2(uy,ux);
+        if(/ひろい/.test(tag)){tlAdd({x:e.x,y:e.y,r:150,dur:.8,dmg:e.dmg*1.5,col})}
+        else if(/ちかづく|れんぞく/.test(tag)){e.st93='lunge';e.stT93=.3;e.hit93=0;e.atkT=1.6}
+        else if(/こおら|わな/.test(tag)){tlAdd({x:tg.x,y:tg.y,r:115,dur:.95,dmg:e.dmg*1.3,col})}
+        else if(/まもる/.test(tag)){e.def93=1.3;ring(e.x,e.y,e.r*2,col,.4,4)}
+        else if(/かいふく/.test(tag)){e.hp=Math.min(e.maxhp,e.hp+e.maxhp*.05);ring(e.x,e.y,e.r*1.8,'#9affb0',.4,4)}
+        else{const n=lv>=3?5:3;for(let k=0;k<n;k++){const a=A+(k-(n-1)/2)*.2;FP(e,Math.cos(a),Math.sin(a),320,col,11)}snd('zap')}}
+    }catch(_){}
+    return _ai.apply(this,arguments)};
+})();
+/* なぐり(近接)の命中エフェクトを多く：斜めの斬り・衝撃リング・火花・足もとのほこり。強い一撃は星と大爆発 */
+const _h200=hitE;let t200=-9;
+hitE=function(e,dmg,src,kb,stun){
+  const r=_h200.apply(this,arguments);
+  try{if(!FXL&&e&&src&&G&&G.P&&G.P.includes(src)&&(src===G.L||e.type==='boss')&&G.t-t200>.18&&(G.FX?G.FX.length<14:true)){t200=G.t;
+    const el=atkEl153(src),n=ELS174.includes(el)?el:'light',col=src.d.col||'#fff',big=dmg>(src.d.atk||10)*1.6||(src.combo||0)>=3;
+    const a=Math.random()*3.14-1.57;
+    fxs106('n_slash_'+n,e.x,e.y-26,big?150:100,.18,{rot:a,a:.9});
+    fxs106('n_ring_'+n,e.x,e.y-14,big?170:110,.22,{sy:.6,a:.8});
+    if(big){starFlash(e.x,e.y-26,70,col,.18,0);fxs106('n_burst2_'+n,e.x,e.y+8,150,.3,{ay:.85,a:.9});fxs106('n_cm0',e.x,e.y+10,110,.4,{ay:.8,add:false,a:.6});shk(.3)}
+    else sparks(e.x,e.y-20,col,3,200)}}catch(_){}
+  return r};
 
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
