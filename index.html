@@ -5489,12 +5489,12 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
     const sec='background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:12px;margin:8px 0;width:100%;max-width:380px;box-sizing:border-box;text-align:left';
     const inp='width:100%;box-sizing:border-box;padding:9px 10px;border-radius:10px;border:1px solid #5b5390;background:#1d1a38;color:#fff;font-size:15px;margin:4px 0';
     ov=mkOv('vs78','<div style="font-size:22px;font-weight:900;margin:8px 0">⚔ 対戦</div>'
-      +'<div style="'+sec+'"><div style="font-weight:900;color:#ffe27a">ソロ：CPUと一騎打ち</div><div style="font-size:11.5px;color:#c9c3e6;margin:3px 0 6px">あいてのキャラと、つよさをえらぼう。じぶんのパーティで戦うよ。</div><select id="v7op" style="'+inp+'">'+names+'</select><select id="v7df" style="'+inp+'"><option value="0">よわい</option><option value="1" selected>ふつう</option><option value="2">つよい</option><option value="3">げきつよ</option><option value="4">ちょうげきつよ（鬼）</option></select><select id="v7df2" style="'+inp+'"><option value="auto" selected>あいての守り：おまかせ</option><option value="dodge">あいての守り：回避だけ</option><option value="guard">あいての守り：ガードだけ</option></select><button class="big" id="v7solo" style="width:100%;font-size:16px;padding:10px;margin-top:6px">ソロでたいせん</button></div>'
+      +'<div style="'+sec+'"><div style="font-weight:900;color:#ffe27a">ソロ：CPUと一騎打ち</div><div style="font-size:11.5px;color:#c9c3e6;margin:3px 0 6px">あいてのキャラと、つよさをえらぼう。じぶんのパーティで戦うよ。</div><input type="hidden" id="v7op" value="'+vsFirst206()+'"><div id="v7grid" style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;margin:4px 0">'+vsGrid206()+'</div><select id="v7df" style="'+inp+'"><option value="0">よわい</option><option value="1" selected>ふつう</option><option value="2">つよい</option><option value="3">げきつよ</option><option value="4">ちょうげきつよ（鬼）</option></select><input type="hidden" id="v7df2" value="auto"><button class="big" id="v7solo" style="width:100%;font-size:16px;padding:10px;margin-top:6px">ソロでたいせん</button></div>'
       +'<div style="'+sec+'"><div style="font-weight:900;color:#ffe27a">マルチ：オンライン対戦（2人）</div><div style="font-size:11.5px;color:#c9c3e6;margin:3px 0 6px">1人が「ルームをつくる」→ 出たコードをともだちに教えて、ともだちが「コードで入る」。どちらも同じゲームを開いてね。</div><button class="mid" id="v7host" style="width:100%">ルームをつくる</button><input id="v7code" inputmode="numeric" maxlength="4" placeholder="4けたのコード" style="'+inp+'"><button class="mid" id="v7join" style="width:100%">コードで入る</button><div id="v7st" style="font-size:12.5px;color:#9fe;margin-top:6px;min-height:18px"></div></div>'
       +'<button class="big" id="v7close" style="font-size:17px;padding:10px 40px;margin:8px 0 28px">とじる</button>');
     ov.classList.remove('hide');ov.style.zIndex=130;ov.style.background='rgba(8,6,24,.97)';ov.style.overflowY='auto';
     const $_=id=>document.getElementById(id);
-    $_('v7close').onclick=()=>{netClose();closeVs()};
+    vsBind206();$_('v7close').onclick=()=>{netClose();closeVs()};
     $_('v7solo').onclick=()=>{const rid=$_('v7op').value,d=+$_('v7df').value,rc=getChar(rid);
       closeVs();startGame(1,{mode:'ch',ch:'duel',d:0,lv:d,def:$_('v7df2').value,rid,rn:rc.name,hp:[420,750,1200,1600,1900][d],dd:[.9,1.4,1.9,2.3,2.6][d],sp:[.9,1,1.15,1.25,1.4][d]})};
     $_('v7host').onclick=()=>{if(NET.on)netClose();host()};
@@ -6009,7 +6009,7 @@ const PERK_IMG={},ICON_IMG={};   // 素材が届いたらここに画像(data UR
     }
     const r=document.createElement('div');r.className='row';
     const mk=(lab,on,fn)=>{const x=document.createElement('button');x.textContent=lab;if(on)x.className='on';x.onclick=fn;r.appendChild(x)};
-    mk('👥 4人で出撃',SOLO<0,()=>{SOLO=-1;try{localStorage.setItem('oni_solo','-1')}catch(_){}render()});
+    [4,3,2].forEach(n=>mk('👥 '+n+'人で出撃',SOLO<0&&PN206()===n,()=>{SOLO=-1;setPN206(n);try{localStorage.setItem('oni_solo','-1')}catch(_){}render()}));
     {let PS=[];try{PS=JSON.parse(localStorage.getItem('oni_preset141')||'[]')}catch(_){}
       const nmOf=id=>{const c=allChars().find(c=>c.id===id);return c?c.name:'?'};
       mk('💾 いまの編成を保存',false,()=>{const cur=PARTY.slice(0,4);PS=PS.filter(a=>a.join()!==cur.join());PS.unshift(cur);PS=PS.slice(0,3);try{localStorage.setItem('oni_preset141',JSON.stringify(PS))}catch(_){}render()});
@@ -9132,6 +9132,8 @@ initSkills=function(){const first=!BASE;_is198();if(first){try{initSkills198()}c
 
 /* ===== v199: ホームを見やすく／お知らせ（なにが追加されたか）／出撃じゅんびで装備のつけ外しがわかる ===== */
 const NEWS199=[
+ ['2026-11-18','🆕 そうび一覧（ホームの📦）／出撃を4・3・2人からえらべる／ネットミーム称号16つ／称号の見た目をカッコよく'],
+ ['2026-11-18','🔧 ボスの「本気」などは左上の小さな表示に。CP対戦のキャラは画像でえらべて、守りの欄は廃止'],
  ['2026-11-18','🆕 カッコいい技10つ（ファントムステップ・りゅうせいキック・つきおとし・ジャッジメントなど）'],
  ['2026-11-18','🔧 オンライン対戦：あいての動きをなめらかに（通信2倍）、弾のこうげきも相手の画面に見える'],
  ['2026-11-18','🔧 オンライン対戦：自分のこうげき・技・必殺が、あいての画面にも映るように'],
@@ -9358,6 +9360,68 @@ function initSkills205(){
 }
 const _is205=initSkills;
 initSkills=function(){const first=!BASE;_is205();if(first){try{initSkills205()}catch(e){oops(e)}try{polish100()}catch(e){oops(e)}}};
+
+/* ===== v206: ボスいかりは左上にちょこっと／出撃人数／そうび一覧／ネットミーム称号／称号の見た目 ===== */
+/* 1 ボスの「本気を出した」などは、左上の小さな札だけにする（画面をおおわない） */
+horrorBanner=function(B,u){
+  try{const dur=B.dur,inT=Math.min(1,u/.2),outT=Math.min(1,Math.max(0,(dur-u)/.4)),a=Math.min(inT,outT),k=B.k;
+    const m=B.m.replace(/[！!]/g,'').trim(),ic=k==='rage'?'😠':k==='flee'?'💨':'👹',col=k==='flee'?'#c090ff':'#ff5a6a';
+    g.save();g.globalAlpha=a*.9;g.font='800 12px sans-serif';const w=g.measureText(ic+' '+m).width+18,x=8-(1-inT)*40,y=62;
+    g.fillStyle='rgba(20,0,10,.78)';g.fillRect(x,y,w,22);g.fillStyle=col;g.fillRect(x,y,3,22);
+    g.fillStyle='#fff';g.textAlign='left';g.textBaseline='middle';g.fillText(ic+' '+m,x+9,y+11.5);g.restore();g.globalAlpha=1}catch(_){}};
+/* 2 出撃人数（4/3/2人） */
+function PN206(){let v=4;try{v=+localStorage.getItem('oni_pn206')||4}catch(_){}return v<2||v>4?4:v}
+function setPN206(n){try{localStorage.setItem('oni_pn206',String(n))}catch(_){}}
+const _ng206=newGame;newGame=function(w0,cfg){_ng206(w0,cfg);
+  try{const n=PN206();if(n<4&&SOLO<0&&G&&G.P&&G.P.length>n&&!(cfg&&(cfg.ch==='duel'||cfg.ch==='mp'))){G.P=G.P.slice(0,n);if(!G.P.includes(G.L))G.L=G.P[0];const k=4-n;for(const p of G.P){p.maxhp=p.hp=Math.round(p.maxhp*(1+.2*k));p.d=Object.assign({},p.d,{atk:Math.round(p.d.atk*(1+.1*k))})}}}catch(_){}};
+/* 3 そうび一覧 */
+function openEqList206(){
+  let o=document.getElementById('eql206');if(o)o.remove();
+  o=document.createElement('div');o.id='eql206';o.style.cssText='position:fixed;inset:0;z-index:120;background:rgba(8,5,22,.92);overflow:auto;padding:14px 12px 30px;color:#fff;display:flex;flex-direction:column;align-items:center';
+  const SL={w:'武器',a:'防具',c:'おまもり'},KN={a:'こうげき',h:'HP',r:'ダメージ軽減',u:'必殺ゲージ'};
+  let h='<div style="font-size:20px;font-weight:900;margin:6px 0 8px">📦 そうび一覧</div><div style="font-size:11.5px;color:#c9c3e6;margin-bottom:8px">ガチャでダブると強くなる。「持っている」「つけているキャラ」がわかるよ</div>';
+  for(const s of['w','a','c']){h+='<div style="width:100%;max-width:420px;font-weight:900;color:#ffe27a;margin:10px 0 4px">'+SL[s]+'</div>';
+    for(const it of EQS.filter(q=>q.s===s)){const lv=eqo()[it.id]||0,who=allChars().filter(c=>eqe(c.id)[s]===it.id).map(c=>c.name);
+      const st=Object.keys(it.st||{}).map(k=>KN[k]+'+'+(k==='u'?Math.round(it.st[k]*eqK(Math.max(1,lv))):Math.round(it.st[k]*eqK(Math.max(1,lv))*100)+'%')).join(' ');
+      const sp=(typeof SP162!=='undefined'&&SP162[it.id])?SP162[it.id].t:'';
+      h+='<div style="width:100%;max-width:420px;box-sizing:border-box;display:flex;gap:10px;align-items:center;background:rgba(255,255,255,'+(lv?'.09':'.04')+');border:1px solid '+(lv?'rgba(255,226,122,.45)':'rgba(255,255,255,.1)')+';border-radius:12px;padding:8px 10px;margin:4px 0;'+(lv?'':'opacity:.55')+'"><div style="font-size:26px;width:40px;text-align:center">'+it.ic+'</div><div style="flex:1;font-size:12px;line-height:1.5"><b style="font-size:14px">'+it.n+'</b> <span style="color:'+(lv?'#9affb0':'#aaa')+'">'+(lv?'Lv'+lv:'みしゅとく')+'</span><br><span style="color:#ffd9a0">'+st+'</span>'+(sp?'<br><span style="color:#c9c3e6">'+sp+'</span>':'')+(who.length?'<br><span style="color:#9fd8ff">つけている：'+who.join('・')+'</span>':'')+'</div></div>'}}
+  h+='<button style="margin-top:14px;width:100%;max-width:420px;font:inherit;font-weight:900;font-size:16px;padding:10px;border-radius:12px;border:0;background:linear-gradient(#ff8a3a,#e0511f);color:#fff">とじる</button>';
+  o.innerHTML=h;o.querySelector('button:last-child').onclick=()=>o.remove();document.body.appendChild(o)}
+setInterval(()=>{try{const gr=document.getElementById('lobGrid');if(!gr||document.getElementById('btnEq206'))return;const b=document.createElement('button');b.id='btnEq206';b.className='mid';b.innerHTML='📦 そうび一覧<small>持ち物・つけてるキャラ</small>';b.onclick=openEqList206;gr.insertBefore(b,gr.children[2]||null)}catch(_){}},1500);
+/* 4 ネットミーム称号 */
+try{TITLES68.push(
+ {id:'f29',n:'ガッ（ぬるぽ）',d:'はじめてダウンする',ok:()=>F176.td>=1},
+ {id:'f30',n:'ワロタ',d:'オニを100たいたおす',ok:()=>REC68.kills>=100},
+ {id:'f31',n:'大草原不可避',d:'オニを1000たいたおす',ok:()=>REC68.kills>=1000},
+ {id:'f32',n:'やったか？（フラグ）',d:'ボスをはじめてたおす',ok:()=>bossKills68()>=1},
+ {id:'f33',n:'ファッ！？ユー',d:'ダウンを合計10回する',ok:()=>F176.td>=10},
+ {id:'f34',n:'おっそうだな',d:'3回れんぞくで負ける',ok:()=>F176.lsMax>=3},
+ {id:'f35',n:'だが断る',d:'5回れんぞくで負けても、あきらめない',ok:()=>F176.lsMax>=5},
+ {id:'f36',n:'ガチャは悪い文明',d:'ガチャを200回ひく',ok:()=>{try{return WAL.pulls>=200}catch(_){return false}}},
+ {id:'f37',n:'沼から出られない',d:'ガチャを500回ひく',ok:()=>{try{return WAL.pulls>=500}catch(_){return false}}},
+ {id:'f38',n:'キタ━(ﾟ∀ﾟ)━！',d:'ガチャでURをひく',ok:()=>F176.ur>=1},
+ {id:'f39',n:'はい優勝',d:'45秒いないにクリアする',ok:()=>F176.fast>=1},
+ {id:'f40',n:'ぬわあああん疲れたもおおお',d:'10分いじょうかけてクリアする',ok:()=>F176.long>=1},
+ {id:'f41',n:'私の戦闘力は53万です',d:'オニを2000たいたおす',ok:()=>REC68.kills>=2000},
+ {id:'f42',n:'異議あり！',d:'装備なしで負けたあと、勝つ',ok:()=>F176.nwAfter>=1},
+ {id:'f43',n:'限界オタク',d:'30回出撃する',ok:()=>REC68.plays>=30},
+ {id:'f44',n:'これもうわかんねぇな',d:'出撃を100回する',ok:()=>REC68.plays>=100}
+)}catch(_){}
+/* 5 称号の見た目 */
+(function(){const css=document.createElement('style');css.textContent=`
+@keyframes ttsh206{0%{background-position:0 0}100%{background-position:200% 0}}
+@keyframes ttsw206{0%{transform:translateX(-120%)}100%{transform:translateX(220%)}}
+.tt68{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.03))!important;border-radius:6px 16px 6px 16px!important}
+.tt68:not(.lock) b{font-size:15px!important;background:linear-gradient(90deg,#ffe27a,#ff9ad0,#7ad8ff,#ffe27a);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:ttsh206 4s linear infinite;letter-spacing:.04em}
+.tt68.on{border-color:#ffe27a!important;box-shadow:0 0 14px rgba(255,226,122,.6),inset 0 0 12px rgba(255,226,122,.18)!important}
+.tt68.on::after{content:"";position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:ttsw206 2.6s linear infinite}
+#ttl68{background:linear-gradient(90deg,rgba(60,30,110,.9),rgba(20,10,50,.9))!important;border:1px solid #ffe27a!important;border-radius:4px 12px 4px 12px!important;box-shadow:0 0 10px rgba(255,226,122,.45);letter-spacing:.05em}`;document.head.appendChild(css)})();
+
+/* 対戦：あいてのキャラを画像でえらぶ */
+function vsFirst206(){try{const c=allChars().filter(c=>c.img||c.builtin)[0];return c?c.id:''}catch(_){return ''}}
+function vsGrid206(){try{return allChars().filter(c=>c.img||c.builtin).map((c,i)=>{let src='';try{const im=imgOf(c);if(im&&im.src)src=im.src}catch(_){}
+  return '<div class="vsc206" data-id="'+c.id+'" style="width:62px;text-align:center;font-size:10px;padding:3px;border-radius:10px;border:2px solid '+(i===0?'#ffe27a':'transparent')+';background:rgba(255,255,255,.07);cursor:pointer"><div style="width:56px;height:56px;margin:0 auto;background:center/contain no-repeat url(\''+src+'\')"></div><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+c.name+'</div></div>'}).join('')}catch(_){return ''}}
+function vsBind206(){try{document.querySelectorAll('.vsc206').forEach(el=>{el.onclick=()=>{document.querySelectorAll('.vsc206').forEach(x=>x.style.borderColor='transparent');el.style.borderColor='#ffe27a';document.getElementById('v7op').value=el.dataset.id}})}catch(_){}}
 
 function makeBG(){
   bgc=document.createElement('canvas');bgc.width=WW;bgc.height=WH;const x=bgc.getContext('2d');
