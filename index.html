@@ -9132,6 +9132,8 @@ initSkills=function(){const first=!BASE;_is198();if(first){try{initSkills198()}c
 
 /* ===== v199: ホームを見やすく／お知らせ（なにが追加されたか）／出撃じゅんびで装備のつけ外しがわかる ===== */
 const NEWS199=[
+ ['2026-11-20','🔧 ガチャのダブりコインを大はば減（1日300まで）／必殺ゲージはたまりにくく、たまると「必殺OK！」／必殺の演出アップ／近接は一歩ふみこんで殴る'],
+ ['2026-11-20','🏆 新チャレンジの初クリアでコイン500＋G玉3（2回目からコイン80）'],
  ['2026-11-20','🏆 新チャレンジ4つ（ガラスの大砲・オニの大行進・ダッシュ地獄・せいえい部隊）／クエストとチャレンジにドロップ素材を表示／工房に素材のあつめ場所／レベルアップと装備作成の演出／新スタイル（ブロウラー・ツインブレード）／新技6つ'],
  ['2026-11-19','💬 ボスが登場・HPはんぶん・ピンチでひとこと、なかまのかけ声、結果画面のひとこと'],
  ['2026-11-19','⚔ 剣タイプは斬り跡、飛び道具は当たりの演出を強化／敵の特性：ゴーレムはかたい（強い一撃で割れる）、盾騎士は正面ガード、コウモリはジグザグ、ゴブリンはピンチで逃げる'],
@@ -9836,6 +9838,47 @@ window.addEventListener('load',function(){
       else{const fin=p.c218%3===0;timed(.08,()=>{if(p.down)return;M2(fin?'hit_fire':'hit_red',cx,cy-24,fin?220:130,.22);if(fin){ring(cx,cy,110,'#ffb04a',.3,5);shk(.4);snd('boom')}for(const e of enm2(cx,cy,fin?120:70))hitE(e,p.d.atk*(fin?1.8:.6),p,fin?420:60,fin?.5:0)})}}catch(_){}
     return r};
   const enm2=(x,y,r)=>G.E.filter(e=>!e.dead&&Math.hypot(e.x-x,e.y-y)<r+e.r);
+});
+
+/* ===== v219: 新チャレンジ初クリアのごほうび（コイン＋G玉）／クリア回数の記録 ===== */
+window.addEventListener('load',function(){
+  const IDS={glass218:'ガラスの大砲',swarm218:'オニの大行進',sprint218:'ダッシュ地獄',elite218:'せいえい部隊'};
+  const _f=finishRun;finishRun=function(win){const r=_f.apply(this,arguments);
+    try{const id=G&&G.cfg&&G.cfg.ch;if(win&&G.mode==='ch'&&IDS[id]){let o={};try{o=JSON.parse(localStorage.getItem('oni_chc219')||'{}')}catch(_){}
+      const first=!o[id];o[id]=(o[id]||0)+1;try{localStorage.setItem('oni_chc219',JSON.stringify(o))}catch(_){}
+      const coin=first?500:80,g=first?3:0;WAL.coin+=coin;if(g)addMat('g',g);saveWal();
+      setTimeout(()=>{try{toast('CLEAR',first?'初クリアボーナス！':'クリアボーナス','🪙+'+coin+(g?'　💎+'+g:'')+'（'+IDS[id]+' '+o[id]+'回目）','#ffd24a','🏆')}catch(_){}},900)}}catch(_){}
+    return r};
+});
+
+/* ===== v220: ダブりコイン増殖をおさえる／必殺ゲージを貯まりにくく＋貯まった演出／必殺の演出アップ／踏みこみ攻撃 ===== */
+window.addEventListener('load',function(){
+  /* 1 ダブりコイン：基本額を下げ、同じものほど急に減り、1日の上限(300)・上限後は1枚 */
+  const BASE={N:6,R:12,SR:25,SSR:60,UR:150};
+  dupCoin196=function(d){
+    let base=BASE[RAR(d)]||5;
+    try{WAL.dupn=WAL.dupn||{};const n=WAL.dupn[d.id]=(WAL.dupn[d.id]||0)+1;base=Math.max(1,Math.round(base*Math.max(.1,1-(n-1)*.25)));
+      const day=new Date().toISOString().slice(0,10);WAL.dupD=WAL.dupD&&WAL.dupD.d===day?WAL.dupD:{d:day,s:0};
+      if(WAL.dupD.s>=300)base=1;else base=Math.min(base,300-WAL.dupD.s);WAL.dupD.s+=base;walDirty=true}catch(_){}
+    return base};
+  /* 2 必殺ゲージ：増える量を4割に（装備の初期ゲージ・アイテムも含む増加分に適用） */
+  const K=.4;
+  const scale=()=>{try{if(!G||!G.P)return;for(const p of G.P){if(p.ult===undefined)continue;if(p._u9!==undefined&&p.ult>p._u9&&p._u9<100){p.ult=Math.min(100,p._u9+(p.ult-p._u9)*K)}p._u9=p.ult}}catch(_){}};
+  const col=p=>(p.d&&p.d.col)||'#ffe27a';
+  const ready=()=>{try{if(!G||!G.P)return;for(const p of G.P){if(p.down||p.ult===undefined)continue;if(p.ult>=100&&!p.rd220){p.rd220=1;if(!FXL){ring(p.x,p.y,110,col(p),.5,4);ring(p.x,p.y,60,'#fff',.35,3);twinkle(p.x,p.y-40,'#fff0a0',10,60,1)}txt(p.x,p.y-p.r*3.2,'必殺OK！','#ffe27a',true);try{snd('heal')}catch(_){}}
+      else if(p.ult<100)p.rd220=0}}catch(_){}};
+  const _u=update;update=function(dt){scale();const r=_u.apply(this,arguments);scale();ready();return r};
+  /* 3 必殺の演出アップ：ヒットストップ・画面フラッシュ・多重リング・ほこり */
+  const _x=execUlt;execUlt=function(p){const r=_x.apply(this,arguments);
+    try{if(!G||!p)return r;const c=col(p);G.hs=Math.max(G.hs||0,.14);shk(.55);flash(.3,c);
+      if(!FXL){for(let k=0;k<4;k++)timed(k*.1,()=>{ring(p.x,p.y,120+k*110,k%2?'#ffffff':c,.4,6-k)});
+        try{fxs106('m_big_cross',p.x,p.y-30,360,.45)}catch(_){}try{fxs106('m_ring_light',p.x,p.y,420,.5)}catch(_){}
+        for(let k=0;k<3;k++)timed(.15+k*.18,()=>{shk(.25)})}}catch(_){}return r};
+  /* 4 踏みこみ攻撃：近接は、近くの敵に向かって一歩ふみこんでから殴る（足の動きをリアルに） */
+  const _a=attack;attack=function(p){
+    try{if(p&&p.d&&p.d.type==='melee'&&!p.down&&!(p.lg&&p.lg.t>0)&&G&&!(G.cfg&&(G.cfg.ch==='mp'))){
+      const t=nearestE(p.x,p.y,170);if(t){const d=Math.hypot(t.x-p.x,t.y-p.y);if(d>(p.r||24)+(t.r||20)+14){const a=Math.atan2(t.y-p.y,t.x-p.x),sp=Math.min(260,d*3.2);p.lg={t:.09,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp};if(!FXL)try{ring(p.x,p.y+8,22,'#ffffff',.14,2)}catch(_){}}}}}catch(_){}
+    return _a.apply(this,arguments)};
 });
 
 function makeBG(){
